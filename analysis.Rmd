@@ -1,0 +1,78 @@
+---
+title: "Analysis of Covid-19"
+author: "Jakob"
+date: "1 4 2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+library(tidyverse)
+```
+
+## Getting Data
+```{r}
+
+df_confirmed <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+df_deaths <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
+df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv")
+
+df_confirmed <- df_confirmed%>%
+  pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date")
+df_confirmed <- rename(df_confirmed, Confirmed = value)
+
+df_deaths <- df_deaths%>%
+  pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date")
+
+df_recovered <- df_recovered%>%
+  pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date")
+
+covid <- df_confirmed %>%
+  left_join(select(df_deaths, -Lat, -Long, Deaths = value))%>%
+  left_join(select(df_recovered, -Lat, -Long, Recovered = value))
+covid$Date <- lubridate::mdy(covid$Date)
+
+covid <- covid%>%
+  group_by(`Country/Region`, `Province/State`)%>%
+  mutate(new_confirmed = Confirmed - lag(Confirmed, n=1, order_by = Date))%>%
+  mutate(new_deaths = Deaths - lag(Deaths, n=1, order_by = Date))%>%
+  mutate(new_recovered = Recovered - lag(Recovered, n=1, order_by = Date))%>%
+  ungroup()
+
+covid[4000:4005, ]
+```
+
+## Analyse Data
+```{r}
+q<- covid%>%
+  ungroup()%>%
+  group_by(Date)%>%
+  summarise(Confirmed = sum(Confirmed), Recovered=sum(Recovered, na.rm=TRUE), Deaths=sum(Deaths))%>%
+  ggplot(aes(Date, `All Cases`))+
+    geom_col(aes(x = Date, y = Confirmed))+
+    geom_col(aes(x = Date, y = Recovered), color = "green")+
+    geom_col(aes(x = Date, y = Deaths), color = "red")+
+    labs(title = "Total Cases Worldwide")
+
+plotly::ggplotly(q)
+
+covid%>%
+  filter(`Country/Region` %in% c("Germany", "US", "Italy", "China"))%>%
+    ggplot(aes(Date, `New Cases`))+
+      geom_col(aes(x = Date, y= new_confirmed))+
+      geom_line(aes(x = Date, y= new_recovered), color = "green", size = 1)+
+      geom_line(aes(x = Date, y= new_deaths), color = "red", size = 1)+
+      labs(title = "Daily Reportet New Cases")+
+      facet_wrap(~ `Country/Region`)
+#     alt.: facet_grid(rows = vars(`Country/Region`))
+
+
+```
+
