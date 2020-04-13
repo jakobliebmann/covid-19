@@ -118,4 +118,27 @@ grouped %>%
 
 ```
 
+## Comparing steepness of curves across countries
+```{r}
+grouped <- grouped %>% 
+  filter(Active>=500) %>% 
+  group_by(`Country/Region`) %>% 
+  mutate(days_since_100_active_cases = Date - min(Date))
+
+countrylist <- c("Germany", "US", "China", "Turkey", "Korea, South", "Italy",  "Japan",  "Austria")
+
+grouped %>%
+  ggplot(aes(days_since_100_active_cases, Active)) +
+  geom_line(aes(group = `Country/Region`), color = "grey") +
+  geom_line(data = filter(grouped, `Country/Region` %in% countrylist), 
+            aes(color =`Country/Region`), size = 2) +
+  geom_text(data = filter(grouped, `Country/Region` %in% countrylist, Date==max(Date)), 
+            aes(label = `Country/Region`, color =`Country/Region`), size = 5,hjust = "left") +
+  scale_y_log10(labels = scales::comma, n.breaks = 8) +
+  scale_color_brewer(type = "qual") +
+  theme(legend.position = "none") +
+  labs(x = "Days (starting with the first time that a country reports 100 active cases)")
+
+```
+
 
