@@ -57,8 +57,8 @@ q<- covid%>%
   summarise(Confirmed = sum(Confirmed), Recovered=sum(Recovered, na.rm=TRUE), Deaths=sum(Deaths))%>%
   ggplot(aes(Date, `All Cases`))+
     geom_col(aes(x = Date, y = Confirmed))+
-    geom_col(aes(x = Date, y = Recovered), color = "green")+
-    geom_col(aes(x = Date, y = Deaths), color = "red")+
+    geom_col(aes(x = Date, y = Recovered), fill = "green")+
+    geom_col(aes(x = Date, y = Deaths), fill = "red")+
     labs(title = "Total Cases Worldwide")
 
 plotly::ggplotly(q)
