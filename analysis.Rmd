@@ -64,7 +64,7 @@ q<- covid%>%
 plotly::ggplotly(q)
 
 covid%>%
-  filter(`Country/Region` %in% c("Germany", "US", "Italy", "China"))%>%
+  filter(`Country/Region` %in% c("Germany", "Italy", "Spain", "US"))%>%
     ggplot(aes(Date, `New Cases`))+
       geom_col(aes(x = Date, y= new_confirmed))+
       geom_line(aes(x = Date, y= new_recovered), color = "green", size = 1)+
