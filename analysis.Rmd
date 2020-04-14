@@ -6,6 +6,11 @@ output:
   html_document:
     toc: true
     toc_float: true
+    df_print: paged
+    code_folding: show  
+    theme: united
+    highlight: tango
+    number_sections: true
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +22,7 @@ knitr::opts_chunk$set(
 library(tidyverse)
 ```
 
-## Getting Data
+# Getting Data
 ```{r}
 
 df_confirmed <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
@@ -49,7 +54,7 @@ covid <- covid%>%
 covid[4000:4005, ]
 ```
 
-## Analyse Data
+# Analyse Data
 ```{r}
 q<- covid%>%
   ungroup()%>%
@@ -57,8 +62,8 @@ q<- covid%>%
   summarise(Confirmed = sum(Confirmed), Recovered=sum(Recovered, na.rm=TRUE), Deaths=sum(Deaths))%>%
   ggplot(aes(Date, `All Cases`))+
     geom_col(aes(x = Date, y = Confirmed))+
-    geom_col(aes(x = Date, y = Recovered), color = "green")+
-    geom_col(aes(x = Date, y = Deaths), color = "red")+
+    geom_col(aes(x = Date, y = Recovered), fill = "green")+
+    geom_col(aes(x = Date, y = Deaths), fill = "red")+
     labs(title = "Total Cases Worldwide")
 
 plotly::ggplotly(q)
@@ -75,4 +80,65 @@ covid%>%
 
 
 ```
+
+## New confirmed vs. new recovered
+
+```{r}
+covid%>%
+  group_by(`Country/Region`, Date) %>%
+  summarise(new_confirmed = sum(new_confirmed), 
+            new_recovered=sum(new_recovered, na.rm=TRUE)) %>%
+  filter(`Country/Region` %in% c("Germany", "US", "Italy", "Austria", "China", "Korea, South"), 
+         Date > '2020-02-01') %>%
+  pivot_longer(cols = starts_with("new"), names_to = "type", values_to = "val") %>%
+  ggplot()+
+    geom_line(aes(Date, val, color = type), size = 1) +
+    facet_wrap(~ `Country/Region`, scales = "free_y") +
+    theme(legend.position = "bottom")
+```
+
+
+## Active cases
+```{r}
+covid <- covid %>% mutate(Active = Confirmed - Deaths - Recovered)
+grouped <- covid %>% 
+  group_by(Date, `Country/Region`) %>%
+  summarise(Active = sum(Active, na.rm = TRUE)) %>%
+  filter(Active > 10) 
+
+countrylist <- c("Germany", "US", "China", "Turkey", "Korea, South", "Italy", "Russia", "Japan")
+
+grouped %>%
+  ggplot(aes(Date, Active)) +
+  geom_line(aes(group = `Country/Region`), color = "grey") +
+  geom_line(data = filter(grouped, `Country/Region` %in% countrylist), 
+            aes(color =`Country/Region`), size = 2) +
+  scale_y_log10(labels = scales::comma, n.breaks = 8) +
+  scale_color_brewer(type = "qual")
+
+```
+
+## Comparing steepness of curves across countries
+```{r}
+grouped <- grouped %>% 
+  filter(Active>=500) %>% 
+  group_by(`Country/Region`) %>% 
+  mutate(days_since_100_active_cases = Date - min(Date))
+
+countrylist <- c("Germany", "US", "China", "Turkey", "Korea, South", "Italy",  "Japan",  "Austria")
+
+grouped %>%
+  ggplot(aes(days_since_100_active_cases, Active)) +
+  geom_line(aes(group = `Country/Region`), color = "grey") +
+  geom_line(data = filter(grouped, `Country/Region` %in% countrylist), 
+            aes(color =`Country/Region`), size = 2) +
+  geom_text(data = filter(grouped, `Country/Region` %in% countrylist, Date==max(Date)), 
+            aes(label = `Country/Region`, color =`Country/Region`), size = 5,hjust = "left") +
+  scale_y_log10(labels = scales::comma, n.breaks = 8) +
+  scale_color_brewer(type = "qual") +
+  theme(legend.position = "none") +
+  labs(x = "Days (starting with the first time that a country reports 100 active cases)")
+
+```
+
 
