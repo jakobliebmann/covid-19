@@ -42,15 +42,69 @@ covid <- covid %>%
 covid <- covid %>%
   mutate(netInfected = Confirmed - Deaths - Recovered)
 
-
 ############################
 # getting choice values    #
 ############################
+
 countrieslist <- covid$`Country/Region` %>%
   unique()
 plotlist <- c("netInfected", "Confirmed", "Deaths", "Recovered", "new_confirmed", "new_deaths", "new_recovered")
 max_date <-(max(covid$Date))
 min_date <-(min(covid$Date))
 
+############################
+# plotting function        #
+############################
 
-str(as.character(dateboundaries[1,"min(Date)"]))
+# general plot-settings
+plotting <- function(countrieschoice, plotchoice, daterange){
+  plot <- covid %>%
+    filter(`Country/Region` %in% countrieschoice, Date >= min(daterange) & Date <= max(daterange)) %>%
+    group_by(`Country/Region`, Date, `Province/State`) %>%
+    summarise_at(plotchoice, mean, na.rm = TRUE) %>% 
+    ggplot() +
+    scale_y_continuous(labels=function(x) format(x, big.mark = ",", scientific = FALSE))+
+    labs(title = "No of persons") +
+    theme(plot.title = element_text(size = 20))+
+    theme_classic()+
+    theme(axis.title.x=element_blank(),
+          axis.title.y=element_blank())
+  
+# construct layers  
+  for (i in plotchoice){
+    if (i == "Confirmed"){
+      plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "darkred")
+    }
+  }   
+  for (i in plotchoice){
+    if (i == "Recovered"){
+      plot <- plot + geom_col(aes(x = Date, y = Recovered), fill = "darkgreen")
+    }
+  }
+  for (i in plotchoice){
+    if (i == "netInfected"){
+      plot <- plot + geom_line(aes(x = Date, y = netInfected), color = "darkblue", size = 1)
+    }
+  }  
+  for (i in plotchoice){
+    if (i == "Deaths"){
+      plot <- plot + geom_col(aes(x = Date, y = Deaths), fill = "black")
+    }
+  }
+  for (i in plotchoice){
+    if (i == "new_confirmed"){
+      plot <- plot + geom_line(aes(x = Date, y = new_confirmed), color = "red")
+    }
+  }   
+  for (i in plotchoice){
+    if (i == "new_recovered"){
+      plot <- plot + geom_line(aes(x = Date, y = new_recovered), color = "green")
+    }
+  }
+  for (i in plotchoice){
+    if (i == "new_deaths"){
+      plot <- plot + geom_line(aes(x = Date, y = new_deaths), color = "black")
+    }
+  }
+  return(ggplotly(plot))
+}

@@ -14,7 +14,6 @@ shinyUI(fluidPage(
                    value = c(min(covid$Date), max(covid$Date)),
                    timeFormat="%Y-%m-%d")
     ),
-
     # Show a plot of the generated distribution
     mainPanel(
        plotlyOutput("plot1")
