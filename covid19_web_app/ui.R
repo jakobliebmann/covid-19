@@ -5,15 +5,16 @@ shinyUI(fluidPage(
 
   sidebarLayout(
     sidebarPanel(
-       selectInput(inputId = "countrieschoice", label = "Select one ore more countries of interest!", choices = countrieslist, selected = c("Germany"), multiple = TRUE),
+       selectInput(inputId = "countrieschoice", label = "Select Region of interest!", choices = countrieslist, selected = c("Germany"), multiple = FALSE),
        selectInput(inputId = "plotchoice", label = "What are you interested in?", choices = plotlist, selected = c("netInfected"), multiple = TRUE),
-       sliderInput("bins",
-                   "Number of bins:",
-                   min = 1,
-                   max = 50,
-                   value = 30)
+       sliderInput("daterange",
+                   "What Period are you interested in?",
+                   min = min_date,
+                   max = max_date,
+                   value = c(min(covid$Date), max(covid$Date)),
+                   timeFormat="%Y-%m-%d")
     ),
-    
+
     # Show a plot of the generated distribution
     mainPanel(
        plotlyOutput("plot1")

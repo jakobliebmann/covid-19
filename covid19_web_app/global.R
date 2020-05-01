@@ -49,3 +49,8 @@ covid <- covid %>%
 countrieslist <- covid$`Country/Region` %>%
   unique()
 plotlist <- c("netInfected", "Confirmed", "Deaths", "Recovered", "new_confirmed", "new_deaths", "new_recovered")
+max_date <-(max(covid$Date))
+min_date <-(min(covid$Date))
+
+
+str(as.character(dateboundaries[1,"min(Date)"]))

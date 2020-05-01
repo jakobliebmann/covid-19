@@ -4,10 +4,12 @@ shinyServer(function(input, output) {
   output$plot1 <- renderPlotly({
     countrieschoice <- input$countrieschoice
     plotchoice <- input$plotchoice
+    daterange <- input$daterange
+    
     
     plot <- covid %>%
       group_by(`Country/Region`, Date, `Province/State`) %>%
-      filter(`Country/Region` %in% countrieschoice) %>%
+      filter(`Country/Region` %in% countrieschoice, Date >= min(daterange) & Date <= max(daterange)) %>%
       summarise_at(plotchoice, mean, na.rm = TRUE) %>% 
       ggplot() +
       labs(title = "No of persons") +
@@ -18,17 +20,17 @@ shinyServer(function(input, output) {
 
     for (i in plotchoice){
       if (i == "Confirmed"){
-        plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "red")
+        plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "darkred")
       }
     }   
     for (i in plotchoice){
       if (i == "Recovered"){
-        plot <- plot + geom_col(aes(x = Date, y = Recovered), fill = "green")
+        plot <- plot + geom_col(aes(x = Date, y = Recovered), fill = "darkgreen")
       }
     }
     for (i in plotchoice){
       if (i == "netInfected"){
-        plot <- plot + geom_col(aes(x = Date, y = netInfected), fill = "darkred")
+        plot <- plot + geom_col(aes(x = Date, y = netInfected), fill = "transparent", color = "darkblue")
       }
     }  
     for (i in plotchoice){
