@@ -1,7 +1,7 @@
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
    
-  output$plot1 <- renderPlot({
+  output$plot1 <- renderPlotly({
     countrieschoice <- input$countrieschoice
     plotchoice <- input$plotchoice
     
@@ -9,8 +9,8 @@ shinyServer(function(input, output) {
       group_by(`Country/Region`, Date, `Province/State`) %>%
       filter(`Country/Region` %in% countrieschoice) %>%
       summarise_at(plotchoice, mean, na.rm = TRUE) %>% 
-      ggplot(aes(x = Date, y = Amount)) +
-      labs(title = "Number of persons affected in the selected region") +
+      ggplot() +
+      labs(title = "No of persons") +
       theme(plot.title = element_text(size = 20))+
       theme_minimal()+
       theme(axis.title.x=element_blank(),
@@ -18,39 +18,40 @@ shinyServer(function(input, output) {
 
     for (i in plotchoice){
       if (i == "Confirmed"){
-        plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "black")
+        plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "red")
       }
     }   
-        
     for (i in plotchoice){
       if (i == "Recovered"){
         plot <- plot + geom_col(aes(x = Date, y = Recovered), fill = "green")
       }
     }
-    
+    for (i in plotchoice){
+      if (i == "netInfected"){
+        plot <- plot + geom_col(aes(x = Date, y = netInfected), fill = "darkred")
+      }
+    }  
     for (i in plotchoice){
       if (i == "Deaths"){
-        plot <- plot + geom_col(aes(x = Date, y = Deaths), fill = "red")
+        plot <- plot + geom_col(aes(x = Date, y = Deaths), fill = "black")
       }
     }
     for (i in plotchoice){
       if (i == "new_confirmed"){
-        plot <- plot + geom_col(aes(x = Date, y = new_confirmed), color = "black")
+        plot <- plot + geom_line(aes(x = Date, y = new_confirmed), color = "red")
       }
     }   
-    
     for (i in plotchoice){
       if (i == "new_recovered"){
-        plot <- plot + geom_col(aes(x = Date, y = new_recovered), color = "green")
+        plot <- plot + geom_line(aes(x = Date, y = new_recovered), color = "green")
       }
     }
-    
     for (i in plotchoice){
       if (i == "new_deaths"){
-        plot <- plot + geom_col(aes(x = Date, y = new_deaths), color = "red")
+        plot <- plot + geom_line(aes(x = Date, y = new_deaths), color = "black")
       }
     } 
-    plot
+    ggplotly(plot)  
   })
 
     output$plot2 <- renderPlot({

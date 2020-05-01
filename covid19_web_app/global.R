@@ -4,6 +4,7 @@
 
 library(shiny)
 library(tidyverse)
+library(plotly)
 
 ############################
 # Creation of a data basis #
@@ -18,9 +19,9 @@ df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID
 df_confirmed <- df_confirmed %>%
   pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date") %>%
   rename(Confirmed = value)
-df_deaths <- df_deaths%>%
+df_deaths <- df_deaths %>%
   pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date")
-df_recovered <- df_recovered%>%
+df_recovered <- df_recovered %>%
   pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date")
 
 # building a dataframe
@@ -30,16 +31,21 @@ covid <- df_confirmed %>%
 covid$Date <- lubridate::mdy(covid$Date)
 
 # calculate daily new cases using the lag
-covid <- covid%>%
-  group_by(`Country/Region`, `Province/State`)%>%
-  mutate(new_confirmed = Confirmed - lag(Confirmed, n=1, order_by = Date))%>%
-  mutate(new_deaths = Deaths - lag(Deaths, n=1, order_by = Date))%>%
-  mutate(new_recovered = Recovered - lag(Recovered, n=1, order_by = Date))%>%
+covid <- covid %>%
+  group_by(`Country/Region`, `Province/State`) %>%
+  mutate(new_confirmed = Confirmed - lag(Confirmed, n=1, order_by = Date)) %>%
+  mutate(new_deaths = Deaths - lag(Deaths, n=1, order_by = Date)) %>%
+  mutate(new_recovered = Recovered - lag(Recovered, n=1, order_by = Date)) %>%
   ungroup()
+
+# calculate amount of infected people
+covid <- covid %>%
+  mutate(netInfected = Confirmed - Deaths - Recovered)
+
 
 ############################
 # getting choice values    #
 ############################
 countrieslist <- covid$`Country/Region` %>%
   unique()
-plotlist <- c("Confirmed", "Deaths", "Recovered", "new_confirmed", "new_deaths", "new_recovered")
+plotlist <- c("netInfected", "Confirmed", "Deaths", "Recovered", "new_confirmed", "new_deaths", "new_recovered")

@@ -6,7 +6,7 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
        selectInput(inputId = "countrieschoice", label = "Select one ore more countries of interest!", choices = countrieslist, selected = c("Germany"), multiple = TRUE),
-       selectInput(inputId = "plotchoice", label = "What are you interested in?", choices = plotlist, multiple = TRUE),
+       selectInput(inputId = "plotchoice", label = "What are you interested in?", choices = plotlist, selected = c("netInfected"), multiple = TRUE),
        sliderInput("bins",
                    "Number of bins:",
                    min = 1,
@@ -16,7 +16,7 @@ shinyUI(fluidPage(
     
     # Show a plot of the generated distribution
     mainPanel(
-       plotOutput("plot1")
+       plotlyOutput("plot1")
     )
   )
 ))
