@@ -5,6 +5,7 @@
 library(shiny)
 library(tidyverse)
 library(plotly)
+library(gapminder)
 
 ############################
 # Creation of a data basis #
@@ -46,9 +47,21 @@ covid <- covid %>%
 # getting choice values    #
 ############################
 
-countrieslist <- covid$`Country/Region` %>%
-  unique()
+# using Gapminder to get the specific countries of a continent
+gapm <- gapminder
+gapm$country <- as.character.factor(gapminder$country)
+gapm$continent <- as.character.factor(gapminder$continent)
+countries_from_continent <- gapm %>% select(country, continent) %>%  distinct(country, continent)
+continentslist <- countries_from_continent$continent %>%  unique
+countrieslist <- covid$`Country/Region` %>%  unique()
+
+# vector enables selection of a region
+regionlist <- continentslist %>% prepend(c("World", "-------CONTINENTS-------")) %>% append("-------COUNTRIES-------") %>% append(countrieslist)
+
+# vector enables selection of case-type
 plotlist <- c("netInfected", "Confirmed", "Deaths", "Recovered", "new_confirmed", "new_deaths", "new_recovered")
+
+# these values represent the boundaries of the selectable period 
 max_date <-(max(covid$Date))
 min_date <-(min(covid$Date))
 
@@ -60,8 +73,8 @@ min_date <-(min(covid$Date))
 plotting <- function(countrieschoice, plotchoice, daterange){
   plot <- covid %>%
     filter(`Country/Region` %in% countrieschoice, Date >= min(daterange) & Date <= max(daterange)) %>%
-    group_by(`Country/Region`, Date, `Province/State`) %>%
-    summarise_at(plotchoice, mean, na.rm = TRUE) %>% 
+    group_by(Date) %>%
+    summarise_at(plotchoice, sum, na.rm = TRUE) %>% 
     ggplot() +
     scale_y_continuous(labels=function(x) format(x, big.mark = ",", scientific = FALSE))+
     labs(title = "No of persons") +

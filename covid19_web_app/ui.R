@@ -5,7 +5,7 @@ shinyUI(fluidPage(
 
   sidebarLayout(
     sidebarPanel(
-       selectInput(inputId = "countrieschoice", label = "Select Region of interest!", choices = countrieslist, selected = c("Germany"), multiple = FALSE),
+       selectInput(inputId = "regionchoice", label = "Select Region of interest!", choices = regionlist, selected = c("Germany"), multiple = FALSE),
        selectInput(inputId = "plotchoice", label = "What are you interested in?", choices = plotlist, selected = c("netInfected"), multiple = TRUE),
        sliderInput("daterange",
                    "What Period are you interested in?",
