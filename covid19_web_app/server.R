@@ -5,6 +5,8 @@ shinyServer(function(input, output) {
     regionchoice <- input$regionchoice
     plotchoice <- input$plotchoice
     daterange <- input$daterange
+    switch_absolut_relative <- input$switch_absolut_relative
+    
     if (regionchoice %in% c("World", "-------CONTINENTS-------", "-------COUNTRIES-------")) {
       countrieschoice <- countrieslist}
     else if (regionchoice %in% continentslist) {
@@ -13,7 +15,7 @@ shinyServer(function(input, output) {
     else {
       countrieschoice <- regionchoice}
       
-    plotting(countrieschoice, plotchoice, daterange)
+    plotting(countrieschoice, plotchoice, daterange, switch_absolut_relative)
   })
 })
 

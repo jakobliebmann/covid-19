@@ -2,16 +2,19 @@
 # Import libraries         #
 ############################
 
-library(shiny)
-library(tidyverse)
-library(plotly)
-library(gapminder)
+library(shiny)       # web-app
+library(tidyverse)   # dplyr and co.
+library(plotly)      # web-graphics
+library(gapminder)   # used for continents and population
+
+# set Date-Output to english
+Sys.setlocale("LC_TIME", "English")
 
 ############################
 # Creation of a data basis #
 ############################
 
-# Getting raw Data (absolute values)
+# Getting raw Data from johns hopkins (absolute values)
 df_confirmed <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
 df_deaths <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
 df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv")
@@ -66,18 +69,42 @@ max_date <-(max(covid$Date))
 min_date <-(min(covid$Date))
 
 ############################
+# getting population       #
+############################
+populationlist <- gapm %>%
+  group_by(country) %>%
+  filter(year == max(year)) %>%
+  select_at(c("country", "pop"))
+
+div.pop <- function(x, divisor){
+  return(x/divisor)
+  }
+############################
 # plotting function        #
 ############################
-
 # general plot-settings
-plotting <- function(countrieschoice, plotchoice, daterange){
+plotting <- function(countrieschoice, plotchoice, daterange, switch_absolut_relative){
+  if (switch_absolut_relative == "Absolut"){
+    divisor <- 1
+    plottitle <- "No of persons"
+  }
+  else {
+    divisor <- populationlist %>%
+      filter(country %in% countrieschoice) %>%
+      ungroup() %>%
+      summarise(sum(as.numeric(pop)))
+    divisor <- divisor[[1]]/100
+    plottitle <- "Percent of population"
+  }
+  
   plot <- covid %>%
     filter(`Country/Region` %in% countrieschoice, Date >= min(daterange) & Date <= max(daterange)) %>%
     group_by(Date) %>%
-    summarise_at(plotchoice, sum, na.rm = TRUE) %>% 
+    summarise_at(plotchoice, sum, na.rm = TRUE) %>%
+    mutate_at(plotchoice, function(x) (x/divisor)) %>%
     ggplot() +
     scale_y_continuous(labels=function(x) format(x, big.mark = ",", scientific = FALSE))+
-    labs(title = "No of persons") +
+    labs(title = plottitle) +
     theme(plot.title = element_text(size = 20))+
     theme_classic()+
     theme(axis.title.x=element_blank(),
@@ -86,7 +113,7 @@ plotting <- function(countrieschoice, plotchoice, daterange){
 # construct layers  
   for (i in plotchoice){
     if (i == "Confirmed"){
-      plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "darkred")
+      plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "darkred") + labs(y = "Confirmed")
     }
   }   
   for (i in plotchoice){
