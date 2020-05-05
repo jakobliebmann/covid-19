@@ -71,6 +71,7 @@ min_date <-(min(covid$Date))
 ############################
 # getting population       #
 ############################
+
 populationlist <- gapm %>%
   group_by(country) %>%
   filter(year == max(year)) %>%
@@ -78,42 +79,47 @@ populationlist <- gapm %>%
 
 div.pop <- function(x, divisor){
   return(x/divisor)
-  }
+}
+
 ############################
 # plotting function        #
 ############################
-# general plot-settings
+
 plotting <- function(countrieschoice, plotchoice, daterange, switch_absolut_relative){
+# specific settings for absolut/relative  display 
   if (switch_absolut_relative == "Absolut"){
     divisor <- 1
     plottitle <- "No of persons"
+    y_axis <- scale_y_continuous(labels=function(x) format(x, big.mark = ",", scientific = FALSE))
   }
   else {
     divisor <- populationlist %>%
       filter(country %in% countrieschoice) %>%
       ungroup() %>%
       summarise(sum(as.numeric(pop)))
-    divisor <- divisor[[1]]/100
-    plottitle <- "Percent of population"
+    divisor <- divisor[[1]]
+    plottitle <- "percentage of the population"
+    y_axis <- scale_y_continuous(labels = scales::percent)
   }
-  
+
+# general plot-settings    
   plot <- covid %>%
     filter(`Country/Region` %in% countrieschoice, Date >= min(daterange) & Date <= max(daterange)) %>%
     group_by(Date) %>%
     summarise_at(plotchoice, sum, na.rm = TRUE) %>%
     mutate_at(plotchoice, function(x) (x/divisor)) %>%
     ggplot() +
-    scale_y_continuous(labels=function(x) format(x, big.mark = ",", scientific = FALSE))+
+    y_axis +
     labs(title = plottitle) +
-    theme(plot.title = element_text(size = 20))+
-    theme_classic()+
+    theme(plot.title = element_text(size = 20)) +
+    theme_classic() +
     theme(axis.title.x=element_blank(),
           axis.title.y=element_blank())
   
 # construct layers  
   for (i in plotchoice){
     if (i == "Confirmed"){
-      plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "darkred") + labs(y = "Confirmed")
+      plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "darkred")
     }
   }   
   for (i in plotchoice){
