@@ -1,22 +1,34 @@
 shinyUI(fluidPage(
   
-  titlePanel("A summary of Covid-19 propagation"),
+  titlePanel("Self service analysis: Covid-19"),
   
 
   sidebarLayout(
     sidebarPanel(
-       selectInput(inputId = "countrieschoice", label = "Select one ore more countries of interest!", choices = countrieslist, selected = c("Germany"), multiple = TRUE),
-       selectInput(inputId = "plotchoice", label = "What are you interested in?", choices = plotlist, multiple = TRUE),
-       sliderInput("bins",
-                   "Number of bins:",
-                   min = 1,
-                   max = 50,
-                   value = 30)
+       selectInput(inputId = "regionchoice", 
+                   label = "Select Region of interest!", 
+                   choices = regionlist, selected = c("Germany"), 
+                   multiple = FALSE),
+       selectInput(inputId = "plotchoice", 
+                   label = "What are you interested in?", 
+                   choices = plotlist, 
+                   selected = c("netInfected"), 
+                   multiple = TRUE),
+       sliderInput(inputId = "daterange",
+                   label = "What Period are you interested in?",
+                   min = min_date,
+                   max = max_date,
+                   value = c(min(covid$Date), max(covid$Date)),
+                   timeFormat="%Y-%m-%d"),
+       radioButtons(inputId = "switch_absolut_relative", 
+                    label ="Type of display:",
+                    choices = c("Absolut", "Relative"),
+                    selected = "Absolut",
+                    inline = TRUE)
     ),
-    
     # Show a plot of the generated distribution
     mainPanel(
-       plotOutput("plot1")
+       plotlyOutput("plot1")
     )
   )
 ))
