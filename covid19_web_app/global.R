@@ -84,12 +84,26 @@ div.pop <- function(x, divisor){
 ############################
 # plotting function        #
 ############################
-
-plotting <- function(countrieschoice, plotchoice, daterange, switch_absolut_relative){
+# Abort if there is no region choosen
+plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relative){
+  if (regionchoice == "empty"){
+    return(NULL)
+  }
+  
+# wrangling the regionchoice
+  if (regionchoice %in% c("World", "-------CONTINENTS-------", "-------COUNTRIES-------")) {
+    countrieschoice <- countrieslist
+    regionchoice <- "World"}
+  else if (regionchoice %in% continentslist) {
+    countrieschoice <- countries_from_continent %>% filter(continent == regionchoice) %>% select_at("country")
+    countrieschoice <- countrieschoice[[1]]}
+  else {
+    countrieschoice <- regionchoice}
+  
 # specific settings for absolut/relative  display 
   if (switch_absolut_relative == "Absolut"){
     divisor <- 1
-    plottitle <- "No of persons"
+    plottitle <- paste0(regionchoice, " - No of persons")
     y_axis <- scale_y_continuous(labels=function(x) format(x, big.mark = ",", scientific = FALSE))
   }
   else {
@@ -98,7 +112,7 @@ plotting <- function(countrieschoice, plotchoice, daterange, switch_absolut_rela
       ungroup() %>%
       summarise(sum(as.numeric(pop)))
     divisor <- divisor[[1]]
-    plottitle <- "percentage of the population"
+    plottitle <- paste0(regionchoice, " - percentage of the population")
     y_axis <- scale_y_continuous(labels = scales::percent)
   }
 

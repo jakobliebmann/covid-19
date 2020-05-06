@@ -1,21 +1,22 @@
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-   
   output$plot1 <- renderPlotly({
-    regionchoice <- input$regionchoice
-    plotchoice <- input$plotchoice
-    daterange <- input$daterange
-    switch_absolut_relative <- input$switch_absolut_relative
-    
-    if (regionchoice %in% c("World", "-------CONTINENTS-------", "-------COUNTRIES-------")) {
-      countrieschoice <- countrieslist}
-    else if (regionchoice %in% continentslist) {
-      countrieschoice <- countries_from_continent %>% filter(continent == regionchoice) %>% select_at("country")
-      countrieschoice <- countrieschoice[[1]]}
-    else {
-      countrieschoice <- regionchoice}
-      
-    plotting(countrieschoice, plotchoice, daterange, switch_absolut_relative)
+    plotting((if (length(input$regionchoice)==0){
+                "empty"} 
+              else {
+                input$regionchoice[[1]]}),
+             input$plotchoice, 
+             input$daterange, 
+             input$switch_absolut_relative)
+  })
+  output$plot2 <- renderPlotly({
+    plotting((if (length(input$regionchoice)<2){
+                "empty"} 
+              else {
+                input$regionchoice[[2]]}),
+             input$plotchoice, 
+             input$daterange, 
+             input$switch_absolut_relative)
   })
 })
 
