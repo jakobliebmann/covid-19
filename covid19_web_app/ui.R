@@ -5,10 +5,10 @@ shinyUI(fluidPage(
 
   sidebarLayout(
     sidebarPanel(
-       selectInput(inputId = "regionchoice", 
-                   label = "Select Region of interest!", 
-                   choices = regionlist, selected = c("Germany"), 
-                   multiple = FALSE),
+       selectizeInput(inputId = "regionchoice", 
+                      label = "Select up to 2 regions of interest!", 
+                      choices = regionlist, selected = c("Germany"), 
+                      options = list(maxItems = 2)),
        selectInput(inputId = "plotchoice", 
                    label = "What are you interested in?", 
                    choices = plotlist, 
@@ -28,7 +28,8 @@ shinyUI(fluidPage(
     ),
     # Show a plot of the generated distribution
     mainPanel(
-       plotlyOutput("plot1")
+       plotlyOutput("plot1"),
+       plotlyOutput("plot2")
     )
   )
 ))
