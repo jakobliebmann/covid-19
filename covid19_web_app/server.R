@@ -5,7 +5,7 @@ shinyServer(function(input, output) {
                 "empty"} 
               else {
                 input$regionchoice[[1]]}),
-             input$plotchoice, 
+             input$plotchoice_values %>% append(input$plotchoice_trend), 
              input$daterange, 
              input$switch_absolut_relative)
   })
@@ -14,7 +14,7 @@ shinyServer(function(input, output) {
                 "empty"} 
               else {
                 input$regionchoice[[2]]}),
-             input$plotchoice, 
+             input$plotchoice_values %>% append(input$plotchoice_trend), 
              input$daterange, 
              input$switch_absolut_relative)
   })

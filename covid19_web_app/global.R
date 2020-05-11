@@ -103,7 +103,7 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
 # specific settings for absolut/relative  display 
   if (switch_absolut_relative == "Absolut"){
     divisor <- 1
-    plottitle <- paste0(regionchoice, " - No of persons")
+    plottitle <- paste0(regionchoice, " - Number of persons")
     y_axis <- scale_y_continuous(labels=function(x) format(x, big.mark = ",", scientific = FALSE))
   }
   else {
@@ -133,22 +133,22 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
 # construct layers  
   for (i in plotchoice){
     if (i == "Confirmed"){
-      plot <- plot + geom_col(aes(x = Date, y = Confirmed), fill = "darkred")
+      plot <- plot + geom_area(aes(x = Date, y = Confirmed), fill = "darkred")
     }
   }   
   for (i in plotchoice){
     if (i == "Recovered"){
-      plot <- plot + geom_col(aes(x = Date, y = Recovered), fill = "darkgreen")
+      plot <- plot + geom_area(aes(x = Date, y = Recovered), fill = "darkgreen")
     }
   }
   for (i in plotchoice){
     if (i == "netInfected"){
-      plot <- plot + geom_line(aes(x = Date, y = netInfected), color = "darkblue", size = 1)
+      plot <- plot + geom_line(aes(x = Date, y = netInfected), color = "darkorange", size = 1)
     }
   }  
   for (i in plotchoice){
     if (i == "Deaths"){
-      plot <- plot + geom_col(aes(x = Date, y = Deaths), fill = "black")
+      plot <- plot + geom_area(aes(x = Date, y = Deaths), fill = "black")
     }
   }
   for (i in plotchoice){
