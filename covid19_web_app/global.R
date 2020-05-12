@@ -133,12 +133,12 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
 # construct layers  
   for (i in plotchoice){
     if (i == "Confirmed"){
-      plot <- plot + geom_area(aes(x = Date, y = Confirmed), fill = "darkred")
+      plot <- plot + geom_area(aes(x = Date, y = Confirmed), fill = "darkred", alpha = 0.3)
     }
   }   
   for (i in plotchoice){
     if (i == "Recovered"){
-      plot <- plot + geom_area(aes(x = Date, y = Recovered), fill = "darkgreen")
+      plot <- plot + geom_area(aes(x = Date, y = Recovered), fill = "darkgreen", alpha = 0.3)
     }
   }
   for (i in plotchoice){
@@ -148,7 +148,7 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
   }  
   for (i in plotchoice){
     if (i == "Deaths"){
-      plot <- plot + geom_area(aes(x = Date, y = Deaths), fill = "black")
+      plot <- plot + geom_area(aes(x = Date, y = Deaths), fill = "black", alpha = 0.3)
     }
   }
   for (i in plotchoice){
