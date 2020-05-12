@@ -126,19 +126,24 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
     y_axis +
     labs(title = plottitle) +
     theme(plot.title = element_text(size = 20)) +
-    theme_classic() +
+    theme_minimal() +
     theme(axis.title.x=element_blank(),
           axis.title.y=element_blank())
   
 # construct layers  
   for (i in plotchoice){
     if (i == "Confirmed"){
-      plot <- plot + geom_area(aes(x = Date, y = Confirmed), fill = "darkred", alpha = 0.3)
+      plot <- plot + geom_area(aes(x = Date, y = Confirmed), fill = "darkred", color = "darkred", alpha = 0.5)
     }
   }   
   for (i in plotchoice){
     if (i == "Recovered"){
-      plot <- plot + geom_area(aes(x = Date, y = Recovered), fill = "darkgreen", alpha = 0.3)
+      plot <- plot + geom_area(aes(x = Date, y = Recovered), fill = "darkgreen", color = "darkgreen", alpha = 0.5)
+    }
+  }
+  for (i in plotchoice){
+    if (i == "Deaths"){
+      plot <- plot + geom_area(aes(x = Date, y = Deaths), fill = "black", color = "black", alpha = 0.5)
     }
   }
   for (i in plotchoice){
@@ -146,11 +151,6 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
       plot <- plot + geom_line(aes(x = Date, y = netInfected), color = "darkorange", size = 1)
     }
   }  
-  for (i in plotchoice){
-    if (i == "Deaths"){
-      plot <- plot + geom_area(aes(x = Date, y = Deaths), fill = "black", alpha = 0.3)
-    }
-  }
   for (i in plotchoice){
     if (i == "new_confirmed"){
       plot <- plot + geom_line(aes(x = Date, y = new_confirmed), color = "red")
