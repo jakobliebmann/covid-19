@@ -1,127 +1,169 @@
 ############################
-# Import libraries         #
+# Preparation              #
 ############################
 
-library(shiny)       # web-app
+library(shiny)       # framework to generate this web-app
 library(tidyverse)   # dplyr and co.
-library(plotly)      # web-graphics
-library(gapminder)   # used for continents and population
+library(plotly)      # generates interactive web-graphics
+library(wpp2019)     # used to get population data
+library(countrycode) # used for assigning countries to continents
+library(data.table)  # used for speed up the application
 
 # set Date-Output to english
 Sys.setlocale("LC_TIME", "English")
 
+# import population data from wpp2019
+data(pop)
+
 ############################
-# Creation of a data basis #
+# Creation of data basis #
 ############################
 
 # Getting raw Data from johns hopkins (absolute values)
-df_confirmed <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
-df_deaths <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
-df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv")
+df_confirmed <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
+                         col_types = cols(Lat = col_skip(), Long = col_skip(), `Province/State` = col_skip()))
+df_deaths <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
+                      col_types = cols(Lat = col_skip(), Long = col_skip(), `Province/State` = col_skip()))
+df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
+                         col_types = cols(Lat = col_skip(), Long = col_skip(), `Province/State` = col_skip()))
 
 # convert it into series (of absolute values)
 df_confirmed <- df_confirmed %>%
-  pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date") %>%
-  rename(Confirmed = value)
+  pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
+  group_by(country = `Country/Region`, date) %>%
+  summarise(confirmed = sum(value))
 df_deaths <- df_deaths %>%
-  pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date")
+  pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
+  group_by(country = `Country/Region`, date) %>%
+  summarise(deaths = sum(value))
 df_recovered <- df_recovered %>%
-  pivot_longer(cols = c(-`Province/State`, -`Country/Region`, -Lat, -Long), names_to = "Date")
+  pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
+  group_by(country = `Country/Region`, date) %>%
+  summarise(recovered = sum(value))
 
 # building a dataframe
 covid <- df_confirmed %>%
-  left_join(select(df_deaths, -Lat, -Long, Deaths = value))%>%
-  left_join(select(df_recovered, -Lat, -Long, Recovered = value))
-covid$Date <- lubridate::mdy(covid$Date)
+  full_join(df_deaths) %>%
+  full_join(df_recovered)
+covid$date <- lubridate::mdy(covid$date)
 
 # calculate daily new cases using the lag
 covid <- covid %>%
-  group_by(`Country/Region`, `Province/State`) %>%
-  mutate(new_confirmed = Confirmed - lag(Confirmed, n=1, order_by = Date)) %>%
-  mutate(new_deaths = Deaths - lag(Deaths, n=1, order_by = Date)) %>%
-  mutate(new_recovered = Recovered - lag(Recovered, n=1, order_by = Date)) %>%
-  ungroup()
+  group_by(country, date) %>%
+  summarise(confirmed = sum(confirmed), deaths = sum(deaths), recovered = sum(recovered)) %>%
+  mutate(new_confirmed = confirmed - lag(confirmed, n=1, order_by = date)) %>%
+  mutate(new_deaths = deaths - lag(deaths, n=1, order_by = date)) %>%
+  mutate(new_recovered = recovered - lag(recovered, n=1, order_by = date))
 
 # calculate amount of infected people
 covid <- covid %>%
-  mutate(netInfected = Confirmed - Deaths - Recovered)
+  mutate(net_infected = confirmed - deaths - recovered)
+
+# getting countries ISO-codes
+covid$iso <- countrycode(sourcevar = covid$country,
+                         origin = "country.name",
+                         destination = "iso3n")
+
+# getting continents from package countrycode (manual work for Kosovo)
+covid$continent <- countrycode(sourcevar = covid$country,
+                               origin = "country.name",
+                               destination = "continent")
+
+covid <- covid %>%
+  mutate(continent = case_when(
+    country=="Kosovo" ~"Europe",
+    TRUE ~ continent
+    ))
+
+# drop tuples which are no countries (i.e. ships)
+covid <- covid%>%
+  filter(!is.na(continent))
+
+# get population data from wpp2019 
+pop_df <- pop %>%
+  select(iso = country_code, pop = "2020") %>%
+  mutate(pop = pop*1000)
+covid <- covid %>%
+  left_join(pop_df)
+
+# set missing population data manually
+covid <- covid %>%
+  mutate(pop = case_when(
+    country=="Andorra" ~ 77006,
+    country=="Dominica" ~ 71293,
+    country=="Holy See" ~ 453,
+    country=="Kosovo" ~ 1907592,
+    country=="Liechtenstein" ~ 38650,
+    country=="Monaco" ~ 37300,
+    country=="Saint Kitts and Nevis" ~ 56000,
+    country=="San Marino" ~ 33420,
+    TRUE ~ pop
+  ))
+
+covid <- as.data.table(covid)
+      # covid %>%
+      #   filter(is.na(pop)) %>%
+      #   distinct(country)
 
 ############################
 # getting choice values    #
 ############################
 
-# using Gapminder to get the specific countries of a continent
-gapm <- gapminder
-gapm$country <- as.character.factor(gapminder$country)
-gapm$continent <- as.character.factor(gapminder$continent)
-countries_from_continent <- gapm %>% select(country, continent) %>%  distinct(country, continent)
-continentslist <- countries_from_continent$continent %>%  unique
-countrieslist <- covid$`Country/Region` %>%  unique()
-
 # vector enables selection of a region
+continentslist <- covid$continent %>%  unique()
+countrieslist <- covid$country %>%  unique()
 regionlist <- continentslist %>% prepend(c("World", "-------CONTINENTS-------")) %>% append("-------COUNTRIES-------") %>% append(countrieslist)
 
 # vector enables selection of case-type
-plotlist <- c("netInfected", "Confirmed", "Deaths", "Recovered", "new_confirmed", "new_deaths", "new_recovered")
+plotlist <- c("net_infected", "confirmed", "deaths", "recovered", "new_confirmed", "new_deaths", "new_recovered")
 
 # these values represent the boundaries of the selectable period 
-max_date <-(max(covid$Date))
-min_date <-(min(covid$Date))
-
-############################
-# getting population       #
-############################
-
-populationlist <- gapm %>%
-  group_by(country) %>%
-  filter(year == max(year)) %>%
-  select_at(c("country", "pop"))
-
-div.pop <- function(x, divisor){
-  return(x/divisor)
-}
+max_date <-(max(covid$date))
+min_date <-(min(covid$date))
 
 ############################
 # plotting function        #
 ############################
-# Abort if there is no region choosen
+
 plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relative){
-  if (regionchoice == "empty"){
+  # Abort if there is no region choosen
+  if(regionchoice == "empty"){
     return(NULL)
   }
   
-# wrangling the regionchoice
+   # wrangling the regionchoice
   if (regionchoice %in% c("World", "-------CONTINENTS-------", "-------COUNTRIES-------")) {
-    countrieschoice <- countrieslist
-    regionchoice <- "World"}
+    regionchoice <- "World"
+    used_data <- covid
+    }
   else if (regionchoice %in% continentslist) {
-    countrieschoice <- countries_from_continent %>% filter(continent == regionchoice) %>% select_at("country")
-    countrieschoice <- countrieschoice[[1]]}
+    used_data <- covid[continent==regionchoice]
+    }
   else {
-    countrieschoice <- regionchoice}
+    used_data <- covid[country==regionchoice]
+    }
   
-# specific settings for absolut/relative  display 
+  # specific settings for absolut/relative  display 
   if (switch_absolut_relative == "Absolut"){
     divisor <- 1
     plottitle <- paste0(regionchoice, " - Number of persons")
     y_axis <- scale_y_continuous(labels=function(x) format(x, big.mark = ",", scientific = FALSE))
   }
   else {
-    divisor <- populationlist %>%
-      filter(country %in% countrieschoice) %>%
-      ungroup() %>%
+    divisor <- used_data %>%
+      distinct(country, pop) %>%
       summarise(sum(as.numeric(pop)))
     divisor <- divisor[[1]]
     plottitle <- paste0(regionchoice, " - percentage of the population")
     y_axis <- scale_y_continuous(labels = scales::percent)
   }
-
-# general plot-settings    
-  plot <- covid %>%
-    filter(`Country/Region` %in% countrieschoice, Date >= min(daterange) & Date <= max(daterange)) %>%
-    group_by(Date) %>%
-    summarise_at(plotchoice, sum, na.rm = TRUE) %>%
-    mutate_at(plotchoice, function(x) (x/divisor)) %>%
+  
+  # general plot-settings  
+  plot <- used_data %>%
+    filter(date >= min(daterange) & date <= max(daterange)) %>%
+    group_by(date) %>%
+    summarise_at(plotlist, sum, na.rm = TRUE) %>%
+    mutate_at(plotlist, function(x) (x/divisor)) %>%
     ggplot() +
     y_axis +
     labs(title = plottitle) +
@@ -130,40 +172,40 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
     theme(axis.title.x=element_blank(),
           axis.title.y=element_blank())
   
-# construct layers  
+  # construct layers  
   for (i in plotchoice){
-    if (i == "Confirmed"){
-      plot <- plot + geom_area(aes(x = Date, y = Confirmed), fill = "darkred", color = "darkred", alpha = 0.5)
+    if (i == "confirmed"){
+      plot <- plot + geom_area(aes(x = date, y = confirmed), fill = "darkred", color = "darkred", alpha = 0.5)
     }
   }   
   for (i in plotchoice){
-    if (i == "Recovered"){
-      plot <- plot + geom_area(aes(x = Date, y = Recovered), fill = "darkgreen", color = "darkgreen", alpha = 0.5)
+    if (i == "recovered"){
+      plot <- plot + geom_area(aes(x = date, y = recovered), fill = "darkgreen", color = "darkgreen", alpha = 0.5)
     }
   }
   for (i in plotchoice){
-    if (i == "Deaths"){
-      plot <- plot + geom_area(aes(x = Date, y = Deaths), fill = "black", color = "black", alpha = 0.5)
+    if (i == "deaths"){
+      plot <- plot + geom_area(aes(x = date, y = deaths), fill = "black", color = "black", alpha = 0.5)
     }
   }
   for (i in plotchoice){
-    if (i == "netInfected"){
-      plot <- plot + geom_line(aes(x = Date, y = netInfected), color = "darkorange", size = 1)
+    if (i == "net_infected"){
+      plot <- plot + geom_line(aes(x = date, y = net_infected), color = "darkorange", size = 1)
     }
   }  
   for (i in plotchoice){
     if (i == "new_confirmed"){
-      plot <- plot + geom_line(aes(x = Date, y = new_confirmed), color = "red")
+      plot <- plot + geom_line(aes(x = date, y = new_confirmed), color = "red")
     }
   }   
   for (i in plotchoice){
     if (i == "new_recovered"){
-      plot <- plot + geom_line(aes(x = Date, y = new_recovered), color = "green")
+      plot <- plot + geom_line(aes(x = date, y = new_recovered), color = "green")
     }
   }
   for (i in plotchoice){
     if (i == "new_deaths"){
-      plot <- plot + geom_line(aes(x = Date, y = new_deaths), color = "black")
+      plot <- plot + geom_line(aes(x = date, y = new_deaths), color = "black")
     }
   }
   return(ggplotly(plot))
