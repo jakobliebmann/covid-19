@@ -27,118 +27,152 @@ df_deaths <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19
 df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
                          col_types = cols(Lat = col_skip(), Long = col_skip(), `Province/State` = col_skip()))
 
+df_covid <- data.frame()
 
 # prepare data
 ## convert it into series (of absolute values) ====
-df_confirmed <- df_confirmed %>%
-  pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
-  group_by(country = `Country/Region`, date) %>%
-  summarise(confirmed = sum(value))
-df_deaths <- df_deaths %>%
-  pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
-  group_by(country = `Country/Region`, date) %>%
-  summarise(deaths = sum(value))
-df_recovered <- df_recovered %>%
-  pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
-  group_by(country = `Country/Region`, date) %>%
-  summarise(recovered = sum(value))
-
+get_df_covid_john_hopkins <- function(){
+  if(length(df_covid) == 0){
+    l_df_confirmed <- df_confirmed %>%
+      pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
+      group_by(country = `Country/Region`, date) %>%
+      summarise(confirmed = sum(value))
+    l_df_deaths <- df_deaths %>%
+      pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
+      group_by(country = `Country/Region`, date) %>%
+      summarise(deaths = sum(value))
+    l_df_recovered <- df_recovered %>%
+      pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
+      group_by(country = `Country/Region`, date) %>%
+      summarise(recovered = sum(value))
 
 ## building a dataframe ====
-covid <- df_confirmed %>%
-  full_join(df_deaths) %>%
-  full_join(df_recovered)
-covid$date <- lubridate::mdy(covid$date)
+    l_covid <- l_df_confirmed %>%
+      full_join(l_df_deaths) %>%
+      full_join(l_df_recovered)
+    
+    l_covid$date <- lubridate::mdy(l_covid$date)
 
 ## calculate daily new cases using the lag ====
-covid <- covid %>%
-  group_by(country, date) %>%
-  summarise(confirmed = sum(confirmed), deaths = sum(deaths), recovered = sum(recovered)) %>%
-  mutate(new_confirmed = confirmed - lag(confirmed, n=1, order_by = date)) %>%
-  mutate(new_deaths = deaths - lag(deaths, n=1, order_by = date)) %>%
-  mutate(new_recovered = recovered - lag(recovered, n=1, order_by = date))
+    l_covid <- l_covid %>%
+      group_by(country, date) %>%
+      summarise(confirmed = sum(confirmed), deaths = sum(deaths), recovered = sum(recovered)) %>%
+      mutate(new_confirmed = confirmed - lag(confirmed, n=1, order_by = date)) %>%
+      mutate(new_deaths = deaths - lag(deaths, n=1, order_by = date)) %>%
+      mutate(new_recovered = recovered - lag(recovered, n=1, order_by = date))
 
 ## calculate amount of infected people ====
-covid <- covid %>%
-  mutate(net_infected = confirmed - deaths - recovered)
+    l_covid <- l_covid %>%
+      mutate(net_infected = confirmed - deaths - recovered)
 
 ## getting countries ISO-codes ====
-covid$iso <- countrycode(sourcevar = covid$country,
-                         origin = "country.name",
-                         destination = "iso3n")
+    l_covid$iso <- countrycode(sourcevar = l_covid$country,
+                           origin = "country.name",
+                           destination = "iso3n")
 
 ## getting continents from package countrycode (manual work for Kosovo) ====
-covid$continent <- countrycode(sourcevar = covid$country,
-                               origin = "country.name",
-                               destination = "continent")
+    l_covid$continent <- countrycode(sourcevar = l_covid$country,
+                                 origin = "country.name",
+                                 destination = "continent")
 
-covid <- covid %>%
-  mutate(continent = case_when(
-    country=="Kosovo" ~"Europe",
-    TRUE ~ continent
-    ))
+    l_covid <- l_covid %>%
+      mutate(continent = case_when(
+        country=="Kosovo" ~"Europe",
+        TRUE ~ continent
+      ))
 
 ## drop tuples which are no countries (i.e. ships) ====
-covid <- covid %>%
-  filter(!is.na(continent))
+    l_covid <- l_covid %>%
+      filter(!is.na(continent))
 
 ## add population data ====
 ### get population data from wpp2019 ####
-pop_df <- pop %>%
-  select(iso = country_code, pop = "2020") %>%
-  mutate(pop = pop*1000)
-covid <- covid %>%
-  left_join(pop_df)
+    df_pop <- pop %>%
+      select(iso = country_code, pop = "2020") %>%
+      mutate(pop = pop*1000)
+  
+    l_covid <- l_covid %>%
+      left_join(df_pop)
 
 ### set missing population data manually ####
-covid <- covid %>%
-  mutate(pop = case_when(
-    country=="Andorra" ~ 77006,
-    country=="Dominica" ~ 71293,
-    country=="Holy See" ~ 453,
-    country=="Kosovo" ~ 1907592,
-    country=="Liechtenstein" ~ 38650,
-    country=="Monaco" ~ 37300,
-    country=="Saint Kitts and Nevis" ~ 56000,
-    country=="San Marino" ~ 33420,
-    TRUE ~ pop
-  ))
+    l_covid <- l_covid %>%
+      mutate(pop = case_when(
+        country=="Andorra" ~ 77006,
+        country=="Dominica" ~ 71293,
+        country=="Holy See" ~ 453,
+        country=="Kosovo" ~ 1907592,
+        country=="Liechtenstein" ~ 38650,
+        country=="Monaco" ~ 37300,
+        country=="Saint Kitts and Nevis" ~ 56000,
+        country=="San Marino" ~ 33420,
+        TRUE ~ pop
+    ))
+# TODO remove NA in l_covid in new_
+    df_covid <- as.data.frame(l_covid)
+  }
+  return(df_covid)
+}
 
+get_dt_covid_world <- function(p_df_covid){
 # covid as data table ----
-covid <- as.data.table(covid)
-      # covid %>%
-      #   filter(is.na(pop)) %>%
-      #   distinct(country)
+  if (length(covid) == 0){
+    covid <- as.data.table(p_df_covid)
+    # covid %>%
+    #   filter(is.na(pop)) %>%
+    #   distinct(country)
+  }
+  return(covid)
+}
 
 # data for input panels ----
 ## vector enables selection of a region ====
-continentslist <- covid$continent %>%  unique()
-countrieslist <- covid$country %>%  unique()
-regionlist <- continentslist %>% prepend(c("World", "-------CONTINENTS-------")) %>% append("-------COUNTRIES-------") %>% append(countrieslist)
+regionlist <- list() %>% prepend(c("World", "-------CONTINENTS-------")) %>% append("-------COUNTRIES-------") 
 ## vector enables selection of case-type ====
-plotlist <- c("net_infected", "confirmed", "deaths", "recovered", "new_confirmed", "new_deaths", "new_recovered")
+plotlist <- c("net_infected"
+              , "confirmed"
+              , "deaths"
+              , "recovered"
+              , "new_confirmed"
+              , "new_deaths"
+              , "new_recovered"
+              )
 
 ## these values represent the boundaries of the selectable period ====
-max_date <-(max(covid$date))
-min_date <-(min(covid$date))
+max_date <- lubridate::ymd("9999-12-31")
+min_date <- lubridate::ymd("1900-01-01")
+covid <- data.table()
+
+get_regionlist <- function(p_covid){
+  continentslist <- p_covid$continent %>% unique()
+  countrieslist <- p_covid$country %>% unique()
+  l_regionlist <- continentslist %>% prepend(c("World", "-------CONTINENTS-------")) %>% append("-------COUNTRIES-------") %>% append(countrieslist)
+  return(l_regionlist)
+}
 
 # plotting functions ---------------------------------------------------------------
-plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relative){
+plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relative, p_dt_covid){
+  # debugging
+  #browser()
+  if (length(p_dt_covid) == 0){
+    return(NULL)
+  }
+    
   # Abort if there is no region choosen
   if(regionchoice == "empty"){
     return(NULL)
   }
   
+  l_continentslist <- p_dt_covid$continent %>% unique()
    # wrangling the regionchoice
   if (regionchoice %in% c("World", "-------CONTINENTS-------", "-------COUNTRIES-------")) {
     regionchoice <- "World"
-    used_data <- covid
+    used_data <- p_dt_covid
   }
-  else if (regionchoice %in% continentslist) {
-    used_data <- covid[continent==regionchoice]
+  else if (regionchoice %in% l_continentslist) {
+    used_data <- p_dt_covid[continent==regionchoice]
   }
   else {
-    used_data <- covid[country==regionchoice]
+    used_data <- p_dt_covid[country==regionchoice]
   }
   
   # specific settings for absolut/relative  display 
@@ -241,12 +275,13 @@ getUIWorldInputPanel <- function(){
     title = "Select below",
     width = 12,
     collapsible = TRUE
+    , textOutput("progress_var")
     # i.A. update in server
     # regionlist
     # options? steuert, dass nur zwei ausgewählt werden dürfen
     , selectizeInput(inputId = "regionchoice"
-                     , label = "Select up to 2 regions of interest:"
                      , choices = regionlist
+                     , label = "Select up to 2 regions of interest:"
                      , selected = c("Germany")
                      , options = list(maxItems = 2)
     )

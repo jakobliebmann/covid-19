@@ -21,5 +21,13 @@
         "en": "Germany"
       , "de": "Deutschland"
       }
+      , {
+        "en": "Select up to 2 regions of interest:"
+      , "de": "Wählen Sie bis zu 2 Regionen aus:"
+      }
+      , {
+        "en": "What Period are you interested in?"
+      , "de": "An welchem Zeitraum sind Sie interessiert?"
+      }
     ]
 }

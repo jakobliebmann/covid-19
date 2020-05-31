@@ -28,7 +28,6 @@ shinyUI(
                        selected = "Deutsch",
                        inline = TRUE)              
           , verbatimTextOutput("value")
-          #              , submitButton("Test", icon("refresh"))
         )
       )
     )
