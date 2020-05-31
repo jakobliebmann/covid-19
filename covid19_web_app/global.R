@@ -1,18 +1,24 @@
 # Preparation for ui and server ----
 library(shiny)       # framework to generate this web-app
+library(shinydashboard) # generate a dashboard frontend
+library(shiny.i18n)  # translation
 library(tidyverse)   # dplyr and co.
 library(plotly)      # generates interactive web-graphics
 library(wpp2019)     # used to get population data
 library(countrycode) # used for assigning countries to continents
 library(data.table)  # used for speed up the application
 
-# set Date-Output to english ----
+# Set Date-Output to english ----
 Sys.setlocale("LC_TIME", "English")
 
-# import data ----
-## population data from wpp2019 ====
+# Import data ----
+## Population data from wpp2019 ====
 data(pop)
 
+## Translation for Frontend ====
+  translator <- Translator$new(translation_json_path = "../data/translations/translation.json")
+  #translator <- Translator$new(translation_csvs_path = "translations")
+  
 ## Getting raw Data from johns hopkins (absolute values) ====
 df_confirmed <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
                          col_types = cols(Lat = col_skip(), Long = col_skip(), `Province/State` = col_skip()))
@@ -204,46 +210,99 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
 }
 
 # UI-Panels ---------------------------------------------------------------
+## UI-IDs ====
+df_tab_ids <- data.frame(
+  list(c("World", "Germany", "Settings")
+       , c("tab_country", "tab_germany", "tab_settings")
+       #https://fontawesome.com/icons?d=gallery&q=globe&m=free
+       #    "globe-europe"
+       , c("globe", "globe-asia","users-cog")
+  )
+)
+colnames(df_tab_ids) <- c("label","id","icon")
+
+## Header ====
+getHeaderLabel <- function() {
+  l_title <- translator$t("Self service analysis: Covid-19")
+  return(l_title)  
+}
+
+getHeader <- function(){
+  
+  ui_header <- dashboardHeader(title = getHeaderLabel())
+  # oder ohne Header - Nachteil Sidebar bei Vollbild zu sehen
+  #    ui_header <- dashboardHeader(disable = TRUE)
+  return(ui_header)
+}
+
 ## World Input ====
 getUIWorldInputPanel <- function(){
-  l_World_Input <- sidebarPanel(
-  selectizeInput(inputId = "regionchoice"
-                 , label = "Select up to 2 regions of interest:"
-                 , choices = regionlist, selected = c("Germany")
-                 , options = list(maxItems = 2)
-  )
-  , checkboxGroupInput(inputId = "plotchoice_values"
-                       , label = "Select values:"
-                       , choices = plotlist[1:4]
-                       , selected = c("net_infected")
-                       , inline = FALSE
-  )
-  , checkboxGroupInput(inputId = "plotchoice_trend"
-                       , label = "Select trend values:"
-                       , choices = plotlist[5:7]
-                       , inline = FALSE
-  )
-  , sliderInput(inputId = "daterange"
-                , label = "What Period are you interested in?"
-                , min = min_date
-                , max = max_date
-                , value = c(min(covid$date), max(covid$date))
-                , timeFormat="%Y-%m-%d"
-  )
-  , radioButtons(inputId = "switch_absolut_relative"
+  l_World_Input <- box(
+    title = "Select below",
+    width = 12,
+    collapsible = TRUE
+    # i.A. update in server
+    # regionlist
+    # options? steuert, dass nur zwei ausgewählt werden dürfen
+    , selectizeInput(inputId = "regionchoice"
+                     , label = "Select up to 2 regions of interest:"
+                     , choices = regionlist
+                     , selected = c("Germany")
+                     , options = list(maxItems = 2)
+    )
+    # ok, da plotlist statisch ist
+    , checkboxGroupInput(inputId = "plotchoice_values"
+                         , label = "Select values:"
+                         , choices = plotlist[1:4]
+                         , selected = c("net_infected")
+                         , inline = FALSE
+    )
+    # ok, da plotlist, global.R statisch ist
+    , checkboxGroupInput(inputId = "plotchoice_trend"
+                         , label = "Select trend values:"
+                         , choices = plotlist[5:7]
+                         , inline = FALSE
+    )
+    #ok, dynamisch via updateSliderInput z.Z. im Server
+    , sliderInput(inputId = "daterange"
+                  , label = "What Period are you interested in?"
+                  , min = min_date
+                  , max = max_date
+                  , value = c(min_date, max_date)
+                  , timeFormat="%Y-%m-%d"
+                  )
+    #ok, da statisch             
+    , radioButtons(inputId = "switch_absolut_relative"
                  , label ="Type of display:"
                  , choices = c("Absolut", "Relative")
                  , selected = "Absolut"
                  , inline = TRUE
-  )
+                 )
   )
   return (l_World_Input)
 }
 ## World Output ====
 getUIWorldOutputPanel <- function() {
-  l_World_Output <- mainPanel(
-    plotlyOutput("plot1")
-    , plotlyOutput("plot2")
+  l_World_Output <- box(
+    title = "Select above",
+    width = 12,
+    collapsible = TRUE,
+    plotlyOutput("plot1"),
+    plotlyOutput("plot2")
   )
   return(l_World_Output)
+}
+
+## Change Language ------ 
+set_language <- function(p_language_id="Deutsch") {
+  switch (p_language_id,
+          "Deutsch" = {
+            translator$set_translation_language("de")
+            getHeader()
+          }
+          , {
+            translator$set_translation_language("en")
+            getHeader()
+          }
+  )
 }

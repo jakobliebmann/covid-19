@@ -1,0 +1,25 @@
+{
+  "languages": ["en", "de"],
+  "translation": [
+      { 
+        "en": "Self service analysis: Covid-19"
+      , "de": "Selbstbedienungsanalyse: Covid-19"
+      }
+      , {
+        "en": "Language"
+      , "de": "Sprache"
+      }
+      , {
+        "en": "Settings"
+      , "de": "Einstellungen"
+      }
+      , {
+        "en": "World"
+      , "de": "Welt"
+      }
+      , {
+        "en": "Germany"
+      , "de": "Deutschland"
+      }
+    ]
+}
