@@ -28,6 +28,7 @@ df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID
                          col_types = cols(Lat = col_skip(), Long = col_skip(), `Province/State` = col_skip()))
 
 # convert it into series (of absolute values)
+#----
 df_confirmed <- df_confirmed %>%
   pivot_longer(cols = c(-`Country/Region`), names_to = "date") %>%
   group_by(country = `Country/Region`, date) %>%
@@ -42,11 +43,14 @@ df_recovered <- df_recovered %>%
   summarise(recovered = sum(value))
 
 # building a dataframe
+#----
 covid <- df_confirmed %>%
   full_join(df_deaths) %>%
   full_join(df_recovered)
 covid$date <- lubridate::mdy(covid$date)
 
+#calculate
+#----
 # calculate daily new cases using the lag
 covid <- covid %>%
   group_by(country, date) %>%
@@ -59,6 +63,8 @@ covid <- covid %>%
 covid <- covid %>%
   mutate(net_infected = confirmed - deaths - recovered)
 
+# countries manipulation
+#----
 # getting countries ISO-codes
 covid$iso <- countrycode(sourcevar = covid$country,
                          origin = "country.name",
@@ -76,7 +82,7 @@ covid <- covid %>%
     ))
 
 # drop tuples which are no countries (i.e. ships)
-covid <- covid%>%
+covid <- covid %>%
   filter(!is.na(continent))
 
 # get population data from wpp2019 
@@ -108,7 +114,7 @@ covid <- as.data.table(covid)
 ############################
 # getting choice values    #
 ############################
-
+#----
 # vector enables selection of a region
 continentslist <- covid$continent %>%  unique()
 countrieslist <- covid$country %>%  unique()
@@ -124,7 +130,7 @@ min_date <-(min(covid$date))
 ############################
 # plotting function        #
 ############################
-
+#----
 plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relative){
   # Abort if there is no region choosen
   if(regionchoice == "empty"){
@@ -135,13 +141,13 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
   if (regionchoice %in% c("World", "-------CONTINENTS-------", "-------COUNTRIES-------")) {
     regionchoice <- "World"
     used_data <- covid
-    }
+  }
   else if (regionchoice %in% continentslist) {
     used_data <- covid[continent==regionchoice]
-    }
+  }
   else {
     used_data <- covid[country==regionchoice]
-    }
+  }
   
   # specific settings for absolut/relative  display 
   if (switch_absolut_relative == "Absolut"){
