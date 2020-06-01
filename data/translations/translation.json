@@ -1,0 +1,33 @@
+{
+  "languages": ["en", "de"],
+  "translation": [
+      { 
+        "en": "Self service analysis: Covid-19"
+      , "de": "Selbstbedienungsanalyse: Covid-19"
+      }
+      , {
+        "en": "Language"
+      , "de": "Sprache"
+      }
+      , {
+        "en": "Settings"
+      , "de": "Einstellungen"
+      }
+      , {
+        "en": "World"
+      , "de": "Welt"
+      }
+      , {
+        "en": "Germany"
+      , "de": "Deutschland"
+      }
+      , {
+        "en": "Select up to 2 regions of interest:"
+      , "de": "Wählen Sie bis zu 2 Regionen aus:"
+      }
+      , {
+        "en": "What Period are you interested in?"
+      , "de": "An welchem Zeitraum sind Sie interessiert?"
+      }
+    ]
+}

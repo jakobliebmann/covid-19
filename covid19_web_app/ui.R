@@ -1,39 +1,64 @@
-shinyUI(fluidPage(
-  
-  titlePanel("Self service analysis: Covid-19"),
-  
-
-  sidebarLayout(
-    sidebarPanel(
-       selectizeInput(inputId = "regionchoice", 
-                      label = "Select up to 2 regions of interest:", 
-                      choices = regionlist, selected = c("Germany"), 
-                      options = list(maxItems = 2)),
-       checkboxGroupInput(inputId = "plotchoice_values", 
-                          label = "Select values:", 
-                          choices = plotlist[1:4], 
-                          selected = c("net_infected"),
-                          inline = FALSE),
-       checkboxGroupInput(inputId = "plotchoice_trend", 
-                          label = "Select trend values:", 
-                          choices = plotlist[5:7], 
-                          inline = FALSE),       
-       sliderInput(inputId = "daterange",
-                   label = "What Period are you interested in?",
-                   min = min_date,
-                   max = max_date,
-                   value = c(min(covid$date), max(covid$date)),
-                   timeFormat="%Y-%m-%d"),
-       radioButtons(inputId = "switch_absolut_relative", 
-                    label ="Type of display:",
-                    choices = c("Absolut", "Relative"),
-                    selected = "Absolut",
-                    inline = TRUE)
-    ),
-    # Show a plot of the generated distribution
-    mainPanel(
-       plotlyOutput("plot1"),
-       plotlyOutput("plot2")
+# Shiny app Frontend or User-Interface ----
+shinyUI(
+  dashboardPage(
+## Title of the frontend or User-Interface ====
+    getHeader()
+## Body of the frontend ====
+### Menu ####
+    , dashboardSidebar(
+      sidebarMenuOutput("left_menu")
+      # idee mit Hidden und dann die aktion abfangen        
+      , textOutput("res")
     )
+### Content of dashboardBody ####
+, dashboardBody(
+  tabItems(
+    # Hier ist die Reihenfolge egal, die Reihenfolge wird über sidebarMenu gesteuert        
+### Content of settings ####
+    tabItem(
+      tabName = df_tab_ids$id[[3]],
+      fluidRow(
+        box(
+          title = "Settings below",
+          width = 12,
+          collapsible = TRUE,
+          radioButtons(inputId = "switch_language", 
+                       label ="Language",
+                       choices = c("English", "Deutsch"),
+                       selected = "Deutsch",
+                       inline = TRUE)              
+          , verbatimTextOutput("value")
+        )
+      )
+    )
+### Content of world ####
+    , tabItem(
+      tabName = df_tab_ids$id[[1]],
+      fluidRow(
+        ### Input panel of world ####
+          getUIWorldInputPanel()
+        ### Output panel of world ####
+        # Show a plot of the generated distribution
+        , getUIWorldOutputPanel()
+      )
+    )
+### Content of germany ####
+    , tabItem(
+      tabName = df_tab_ids$id[[2]],
+      fluidRow(
+        box(
+          title = "Select below",
+          width = 12,
+          collapsible = TRUE,
+          selectizeInput(inputId = "regionchoice", 
+                         label = "Select up to 2 regions of interest:", 
+                         choices = regionlist, selected = c("Germany"), 
+                         options = list(maxItems = 2))
+        )
+      )
+    )  
+# End of Shiny App ------ 
   )
-))
+)
+  )
+)  
