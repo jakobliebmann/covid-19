@@ -29,7 +29,17 @@ df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID
 
 df_covid <- data.frame()
 
-# prepare data
+## Getting raw Data from RKI Bund (absolute values) ====
+#1
+#df_rki <- read_csv("https://opendata.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0.csv")
+#2
+#df_rki_bund <- read_csv("https://opendata.arcgis.com/datasets/ef4b445a53c1406892257fe63129a8ea_0.csv")
+#<- read_csv("https://www.arcgis.com/home/item.html?id=f10774f1c63e40168479a1feb6c7ca74")
+#<- read_csv("https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?outFields=*&where=1%3D1") 
+## Getting raw Data from RKI Landkreise (absolute values) ====
+#3
+#df_rki_kreis <- read_csv("https://opendata.arcgis.com/datasets/917fc37a709542548cc3be077a786c17_0.csv")
+
 ## convert it into series (of absolute values) ====
 get_df_covid_john_hopkins <- function(){
   if(length(df_covid) == 0){
@@ -262,8 +272,12 @@ getHeaderLabel <- function() {
 }
 
 getHeader <- function(){
-  
-  ui_header <- dashboardHeader(title = getHeaderLabel())
+  #?dashboardHeader
+  ui_header <- dashboardHeader(
+    #title = getHeaderLabel()
+    title = textOutput(outputId = "MyHead")
+    #.list = list(h1(getHeaderLabel()))
+    )
   # oder ohne Header - Nachteil Sidebar bei Vollbild zu sehen
   #    ui_header <- dashboardHeader(disable = TRUE)
   return(ui_header)

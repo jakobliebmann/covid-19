@@ -50,10 +50,11 @@ shinyUI(
           title = "Select below",
           width = 12,
           collapsible = TRUE,
-          selectizeInput(inputId = "regionchoice", 
+          selectizeInput(inputId = "g_regionchoice", 
                          label = "Select up to 2 regions of interest:", 
                          choices = regionlist, selected = c("Germany"), 
-                         options = list(maxItems = 2))
+                         options = list(maxItems = 2)
+                         )
         )
       )
     )  

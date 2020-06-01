@@ -62,12 +62,19 @@ shinyServer(function(input, output, session) {
                       , max = s_max_date
                       , value = c(s_min_date, s_max_date)
     )
-    
   })
   
   # Ausgabe-Feld in Settings unterhalb der Sprache
   output$value <- renderPrint({ 
     paste("Sprache-render",input$switch_language)
+  })
+  
+  output$MyHead <- renderText({
+    selected <- input$switch_language
+    if (length(selected) > 0 && selected %in% translator$languages) {
+      set_language(input$switch_language)
+    }
+    getHeaderLabel()
   })
   
 ### Menu item selection ####
@@ -80,7 +87,7 @@ shinyServer(function(input, output, session) {
                 progress <- shiny::Progress$new()
                 progress$set(message = "Computing data", value = 0)
                 # debugging
-                browser()
+                #browser()
                 progress$set(value = 0.2, detail = NULL)
                 temp_covid <- get_df_covid_john_hopkins()
                 progress$set(value = 0.4, detail = NULL)
