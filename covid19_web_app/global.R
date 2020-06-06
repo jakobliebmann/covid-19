@@ -29,7 +29,8 @@ df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID
 df_covid <- data.frame()
 
 ## Getting raw Data from RKI Landkreise (absolute values) ====
-df_rki_destrict <- read_csv("https://opendata.arcgis.com/datasets/917fc37a709542548cc3be077a786c17_0.csv")
+df_rki_district <- read_csv("https://opendata.arcgis.com/datasets/917fc37a709542548cc3be077a786c17_0.csv",
+                            col_types = cols(cases = col_integer(), deaths = col_integer(), EWZ = col_integer()))
 
 ## World - Convert it into series (of absolute values) ====
 get_df_covid_john_hopkins <- function(){
@@ -146,7 +147,7 @@ covid <- data.table()
 ## Germany - Vector enables selection of federal states ====
 choices_state_t2 <- "Federal States"
 choices_state_pre <- paste("--- All" , choices_state_t2 , "---")
-choices_state <- unique(df_rki_destrict$BL) 
+choices_state <- unique(df_rki_district$BL) 
 choices_state <- sort(choices_state)
 choices_state <- choices_state %>% prepend(choices_state_pre)
 
@@ -256,7 +257,7 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
 ## UI-IDs of menu tabs ====
 df_tab_ids <- data.frame(
   list(c("World", "Germany", "Settings", "About")
-       , c("tab_country", "tab_germany", "tab_settings", "tab_about")
+       , c("tab_world", "tab_germany", "tab_settings", "tab_about")
        #https://fontawesome.com/icons?d=gallery&q=globe&m=free
        #    "globe-europe"
        , c("globe", "globe-asia","users-cog", "qrcode")
@@ -280,11 +281,9 @@ getHeader <- function(){
 ## World - Panel of input ====
 getUIWorldInputPanel <- function(){
   l_World_Input <- box(
-    title = "Select below",
-    width = 12,
-    collapsible = TRUE
-    # i.A. update in server
-    # regionlist
+    title = textOutput("select_below_world")
+    , width = 12
+    , collapsible = TRUE
     , selectizeInput(inputId = "regionchoice"
                      , choices = regionlist
                      , label = "Select up to 2 regions of interest:"
@@ -332,8 +331,8 @@ getUIWorldOutputPanel <- function() {
 
 ## GERMANY - Tab Box - Input elements ====
 getUIGermanyInputTabBox <- function() {
-  l_in_ger_tb <-           box(
-    title = "Select below"
+  l_in_ger_tb <- box(
+    title = textOutput("select_below_ger")
     , width = 12
     , collapsible = TRUE
     , selectInput(inputId = "federalState"
@@ -341,10 +340,11 @@ getUIGermanyInputTabBox <- function() {
                   , choices = choices_state
                   , selected = c("Schleswig-Holstein")
     )
-    , selectInput(inputId = "destrict"
-                  , label = "Select a destrict of interest:"
+    , selectInput(inputId = "district"
+                  , label = "Select a district of interest:"
                   , choices = NULL
     )
+    , textOutput("dataStatusGermany")
   )
   return(l_in_ger_tb)
 }
@@ -354,23 +354,24 @@ getUIGermanyOutputTabBoxPlots <- function() {
     width = 12
     , tabBox(
       id = "tabsetPlotsGermany"
-      , width = "400px"
+      , width = "500px"
       , tabPanel(
         "Cases"
-        #                    , textOutput("plotStateTitle")
+        , textOutput("plotCasesTitle")
         , plotlyOutput("plotCases"
                        , width = 600
         )
       )
       , tabPanel(
         "Cases per 100k"
-        , textOutput("plotStateTitle")
+        , textOutput("plotCasesPer100kTitle")
         , plotlyOutput("plotCasesPer100K"
                        , width = 600
         )
       )
       , tabPanel(
         "Deaths"
+        , textOutput("plotDeathsTitle")
         , plotlyOutput("plotDeaths"
                        , width = 600
         )

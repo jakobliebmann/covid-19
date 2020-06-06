@@ -14,6 +14,14 @@
       , "de": "Einstellungen"
       }
       , {
+        "en": "Settings below"
+      , "de": "Einstellungen"
+      }
+      , {
+        "en": "Select below"
+      , "de": "Wählen Sie"
+      }
+      , {
         "en": "World"
       , "de": "Welt"
       }
@@ -24,6 +32,18 @@
       , {
         "en": "About"
       , "de": "Über"
+      }
+      , {
+        "en": "Data status"
+      , "de": "Datenstand"
+      }
+      , {
+        "en": "Select a federal state of interest:"
+      , "de": "Wählen Sie ein Bundesland aus:"
+      }
+      , {
+        "en": "Select a district of interest:"
+      , "de": "Wählen Sie einen Kreis aus:"
       }
       , {
         "en": "Select up to 2 regions of interest:"

@@ -16,14 +16,14 @@ shinyUI(
       tabName = df_tab_ids$id[[3]],
       fluidRow(
         box(
-          title = "Settings below",
-          width = 12,
-          collapsible = TRUE,
-          radioButtons(inputId = "switch_language", 
-                       label ="Language",
-                       choices = c("English", "Deutsch"),
-                       selected = "Deutsch",
-                       inline = TRUE
+          title = textOutput("settings_below")
+          , width = 12
+          , collapsible = TRUE
+          , radioButtons(inputId = "switch_language"
+                         , label ="Language"
+                         , choices = c("English", "Deutsch")
+                         , selected = "Deutsch"
+                         , inline = TRUE
                        )
         )
       )
