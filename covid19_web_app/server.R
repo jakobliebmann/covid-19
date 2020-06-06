@@ -254,7 +254,7 @@ shinyServer(function(input, output, session) {
   }  
 
 ### Germany - Data frame for cases ####  
-  getCases <- function(p_federalStrate, p_district) {
+  getCases <- function(p_federalStrate, p_district, p_with_colnames=FALSE) {
     l_df <- getDataState(p_federalStrate, p_district, "cases") %>% 
         arrange(desc(cases)) %>% 
         top_n(10, wt = cases) %>% 
@@ -262,12 +262,14 @@ shinyServer(function(input, output, session) {
           county 
           , cases	
         ) 
-    colnames(l_df) <- c("District", "Cases")
+    if (p_with_colnames) {
+      colnames(l_df) <- c("District", "Cases")
+    }
     return(l_df)
   }
   
 ### Germany - Data frame for cases per 100k ####  
-  getCasesPer100k <- function(p_federalStrate, p_district) {
+  getCasesPer100k <- function(p_federalStrate, p_district, p_with_colnames=FALSE) {
     l_df <- getDataState(p_federalStrate, p_district, "cases_per_100k") %>% 
         arrange(desc(cases_per_100k)) %>% 
         top_n(10, wt = cases_per_100k) %>% 
@@ -275,12 +277,14 @@ shinyServer(function(input, output, session) {
           county 
         , cases_per_100k	
       ) 
-    colnames(l_df) <- c("District", "Cases per 100.000")
+    if (p_with_colnames) {
+      colnames(l_df) <- c("District", "Cases per 100.000")
+    }
     return(l_df)
   }
   
 ### Germany - Data frame for deaths ####  
-  getDeaths <- function(p_federalStrate, p_district) {
+  getDeaths <- function(p_federalStrate, p_district, p_with_colnames=FALSE) {
     l_df <- getDataState(p_federalStrate, p_district, "deaths") %>% 
         arrange(desc(deaths)) %>% 
         top_n(10, wt = deaths) %>% 
@@ -288,7 +292,9 @@ shinyServer(function(input, output, session) {
             county 
           , deaths	
         ) 
-    colnames(l_df) <- c("District", "Deaths")
+    if (p_with_colnames) {
+      colnames(l_df) <- c("District", "Deaths")
+    }
     return(l_df)
   }
   
@@ -297,7 +303,14 @@ shinyServer(function(input, output, session) {
     req(input$tabSidebar)
     if(input$tabSidebar == df_tab_ids$id[[2]]){
       g_df <- getCases(input$federalState, input$district)
-      ggplot(data=g_df, aes(x = Cases, y = District)) + geom_bar(stat = "identity") + labs(x = "Confirmed Cases", y = "")
+      plot_ly(data = g_df, x=~cases, y =~county, type = 'bar') %>%
+        layout(
+          xaxis = list(title = "Confirmed Cases")
+          , yaxis = list(title = ""
+                      , categoryorder = "array"
+                      , categoryarray = ~cases
+                  )
+        )      
     }
   })
 
@@ -306,7 +319,14 @@ shinyServer(function(input, output, session) {
     req(input$tabsetPlotsGermany)
     if (input$tabsetPlotsGermany == "Cases per 100k") {
       g_df <- getCasesPer100k(input$federalState, input$district)
-      ggplot(data=g_df, aes(x =`Cases per 100.000`, y = District)) + geom_bar(stat = "identity") + labs(x = "Confirmed cases per 100.000", y = "")
+      plot_ly(data = g_df, x=~cases_per_100k, y =~county, type = 'bar') %>%
+        layout(
+          xaxis = list(title = "Cases per 100.000")
+          , yaxis = list(title = ""
+                         , categoryorder = "array"
+                         , categoryarray = ~cases_per_100k
+                         )
+        )      
     }
   })
 
@@ -315,7 +335,14 @@ shinyServer(function(input, output, session) {
     req(input$tabsetPlotsGermany)
     if (input$tabsetPlotsGermany == "Deaths") {
       g_df <- getDeaths(input$federalState, input$district)
-      ggplot(data=g_df, aes(x =Deaths, y = District)) + geom_bar(stat = "identity") + labs(x = "Confirmed deaths", y = "")
+      plot_ly(data = g_df, x=~deaths, y =~county, type = 'bar') %>%
+        layout(
+          xaxis = list(title = "Confirmed deaths")
+          , yaxis = list(title = ""
+                         , categoryorder = "array"
+                         , categoryarray = ~deaths
+                         )
+        )      
     }
   })
 
@@ -344,17 +371,17 @@ shinyServer(function(input, output, session) {
 
 ### Germany - Output table for cases ####    
   output$dataDetailsCases <- renderTable({
-    getCases(input$federalState, input$district)
+    getCases(input$federalState, input$district, TRUE)
   })  
   
 ### Germany - Output table for cases per 100k ####    
   output$dataDetailsCases100k <- renderTable({
-    getCasesPer100k(input$federalState, input$district)
+    getCasesPer100k(input$federalState, input$district, TRUE)
   })  
   
 ### Germany - Output table for deaths ####    
   output$dataDetailsDeaths <- renderTable({
-    getDeaths(input$federalState, input$district)
+    getDeaths(input$federalState, input$district, TRUE)
   })  
 ### Germany - Output Data status ####      
   output$dataStatusGermany <- renderText({
