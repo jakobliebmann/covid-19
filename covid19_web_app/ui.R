@@ -6,14 +6,11 @@ shinyUI(
 ## Body of the frontend ====
 ### Menu ####
     , dashboardSidebar(
-      sidebarMenuOutput("left_menu")
-      # idee mit Hidden und dann die aktion abfangen        
-      , textOutput("res")
+        sidebarMenuOutput("left_menu")
     )
 ### Content of dashboardBody ####
 , dashboardBody(
   tabItems(
-    # Hier ist die Reihenfolge egal, die Reihenfolge wird über sidebarMenu gesteuert        
 ### Content of settings ####
     tabItem(
       tabName = df_tab_ids$id[[3]],
@@ -26,35 +23,40 @@ shinyUI(
                        label ="Language",
                        choices = c("English", "Deutsch"),
                        selected = "Deutsch",
-                       inline = TRUE)              
-          , verbatimTextOutput("value")
+                       inline = TRUE
+                       )
         )
       )
+    )
+### Content of information, e.g. about ####
+    , tabItem(
+        tabName = df_tab_ids$id[[4]],
+        fluidRow(
+          box(
+              title = "Informations",
+              width = 12,
+              collapsible = FALSE
+              , textOutput("informations")
+              , textOutput("sourceWorld")
+              , textOutput("sourceGermany")
+          )
+        )
     )
 ### Content of world ####
     , tabItem(
-      tabName = df_tab_ids$id[[1]],
-      fluidRow(
-        ### Input panel of world ####
+        tabName = df_tab_ids$id[[1]],
+        fluidRow(
           getUIWorldInputPanel()
-        ### Output panel of world ####
-        # Show a plot of the generated distribution
         , getUIWorldOutputPanel()
-      )
+        )
     )
 ### Content of germany ####
     , tabItem(
-      tabName = df_tab_ids$id[[2]],
-      fluidRow(
-        box(
-          title = "Select below",
-          width = 12,
-          collapsible = TRUE,
-          selectizeInput(inputId = "regionchoice", 
-                         label = "Select up to 2 regions of interest:", 
-                         choices = regionlist, selected = c("Germany"), 
-                         options = list(maxItems = 2))
-        )
+        tabName = df_tab_ids$id[[2]],
+        fluidRow(
+            getUIGermanyInputTabBox()
+          , getUIGermanyOutputTabBoxPlots()
+          , getUIGermanyOutputTabBoxDataTables()
       )
     )  
 # End of Shiny App ------ 
