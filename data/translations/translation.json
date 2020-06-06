@@ -22,6 +22,10 @@
       , "de": "Deutschland"
       }
       , {
+        "en": "About"
+      , "de": "Über"
+      }
+      , {
         "en": "Select up to 2 regions of interest:"
       , "de": "Wählen Sie bis zu 2 Regionen aus:"
       }

@@ -6,9 +6,7 @@ shinyUI(
 ## Body of the frontend ====
 ### Menu ####
     , dashboardSidebar(
-      sidebarMenuOutput("left_menu")
-    # idee mit Hidden und dann die aktion abfangen        
-    #, textOutput("tabSelection")
+        sidebarMenuOutput("left_menu")
     )
 ### Content of dashboardBody ####
 , dashboardBody(
@@ -79,19 +77,32 @@ shinyUI(
             width = 12
             , tabBox(
     # The id lets us use input$tabset1 on the server to find the current tab
-                id = "tabset1"
+                id = "tabsetPlotsGermany"
 #                , height = "350px"
+                , width = "400px"
                 , tabPanel(
-                    "cases per 100k"
-                  , textOutput("plotStateTitle")
-#             "First tab content"
-                  , plotlyOutput("plotFederalState"
+                    "Cases"
+#                    , textOutput("plotStateTitle")
+                    , plotlyOutput("plotCases"
 #                                 , height = 250
-                                 )
+                                   , width = 600
+                  )
                 )
                 , tabPanel(
-                    "Tab2"
-                    , "Tab content 2"
+                  "Cases per 100k"
+                  , textOutput("plotStateTitle")
+                  , plotlyOutput("plotCasesPer100K"
+#                                 , height = 250
+                                 , width = 600
+                  )
+                )
+                , tabPanel(
+                  "Deaths"
+#                    , textOutput("plotStateTitle")
+                  , plotlyOutput("plotDeaths"
+                 #                                 , height = 250
+                 , width = 600
+                  )
                 )
             )
           )
@@ -103,23 +114,26 @@ shinyUI(
             , tabBox(
               #    title = "First tabBox",
               # The id lets us use input$tabset1 on the server to find the current tab
-              id = "tabset1"
+              id = "tabsetDetailsGermany"
               #, height = "350px"
-              , tabPanel("cases per 100k"
-                       , 
+              , width = "400px"
+              , tabPanel("Result of input selection"
                        #textOutput("plotStateTitle")
-                                    "First tab content"
-                       , tableOutput("dataState")
-              ),
-              tabPanel("Tab2", "Tab content 2")
+                      , tableOutput("dataState")
+              )
+### Germany - Output details to plot cases ####
+              , tabPanel("Details to plot cases"
+                         , tableOutput("dataDetailsCases")
+              )
+### Germany - Output details to plot cases per 100k ####
+              , tabPanel("Details to plot cases per 100k"
+                         , tableOutput("dataDetailsCases100k")
+              )
+### Germany - Output details to plot cases per 100k ####
+              , tabPanel("Details to plot deaths"
+                        , tableOutput("dataDetailsDeaths")
+              )
             )
-          )
-### Germany - Output details to plot ####
-          , box(
-            title = "Details to plot"
-            , width = 12
-            , collapsible = TRUE
-            , tableOutput("dataDetails")
           )
       )
     )  

@@ -27,7 +27,7 @@ shinyServer(function(input, output, session) {
   output$left_menu <- renderMenu({
     set_language(input$switch_language)
     sidebarMenu(
-      id = "tabs"
+      id = "tabSidebar"
       # mit selected = TRUE - bekomme ich die Auswahl ohne Sortierung der Menü-Items
       , menuItem(text = translator$t(df_tab_ids$label[[1]]), tabName = df_tab_ids$id[[1]], icon = icon(df_tab_ids$icon[[1]]))
       , menuItem(text = translator$t(df_tab_ids$label[[2]]), tabName = df_tab_ids$id[[2]], icon = icon(df_tab_ids$icon[[2]]))
@@ -80,7 +80,7 @@ shinyServer(function(input, output, session) {
   
 ### Menu item selection ####
   tabPerform <- reactive({
-    selectedTab <- input$tabs
+    selectedTab <- input$tabSidebar
     if (length(selectedTab) > 0){
       switch (selectedTab,
               "tab_country" = {
@@ -145,7 +145,7 @@ shinyServer(function(input, output, session) {
     paste("Top 10 destricts in", input$federalState ,"with cases per 100.000")
   })
   output$tabSelection <- renderText({
-    selectedTab <- input$tabs
+    selectedTab <- input$tabSidebar
     if (length(selectedTab) > 0){
       switch (selectedTab,
               "tab_country" = {
@@ -210,14 +210,15 @@ shinyServer(function(input, output, session) {
   destricts <- reactive({
     lSelect <- input$destrict
     if (length(lSelect) > 0 && lSelect %in% df_rki_destrict$county) {
-      print(
+#      print(
         paste("Teste federalState", lSelect)
-        )
+#        )
     }
   })
   
 ### Germany - Data frame with conditions ####
   getDataState <- function(p_federalStrate, p_destrict, p_attribute){
+#    print(paste("getDataState",p_federalStrate, p_destrict, p_attribute))
     if (p_federalStrate == choices_state_pre) {
       return(df_rki_destrict)
     } else
@@ -228,12 +229,14 @@ shinyServer(function(input, output, session) {
       } else {
         l_dataState <- df_rki_destrict %>% 
           filter(BL == p_federalStrate) 
+        l_data_destrict <- l_dataState %>% filter(county == p_destrict)
         l_data <- l_dataState %>%         
-          arrange(desc(cases_per_100k)) %>% 
-          top_n(1, wt = cases_per_100k)  
+          arrange(desc(.data[[p_attribute]])) 
+        l_data_top <- l_data %>%         
+             top_n(1, wt = .data[[p_attribute]])  
         return(union(
-            l_data
-          , l_dataState %>% filter(county == p_destrict) 
+            l_data_top
+          , l_data_destrict
         ))
       }
   }  
@@ -241,8 +244,8 @@ shinyServer(function(input, output, session) {
 ### Germany - Data frame for cases per 100k ####  
   getCasesPer100k <- function(p_federalStrate, p_destrict) {
     return(
-      getDataState(p_federalStrate, p_destrict) %>% 
-        arrange(desc(cases_per_100k), county) %>% 
+      getDataState(p_federalStrate, p_destrict, "cases_per_100k") %>% 
+        arrange(desc(cases_per_100k)) %>% 
         top_n(10, wt = cases_per_100k) %>% 
         select(
         #          BL , GEN
@@ -254,12 +257,67 @@ shinyServer(function(input, output, session) {
     )
   }
   
+### Germany - Data frame for deaths ####  
+  getDeaths <- function(p_federalStrate, p_destrict) {
+    return(
+      getDataState(p_federalStrate, p_destrict, "deaths") %>% 
+        arrange(desc(deaths)) %>% 
+        top_n(10, wt = deaths) %>% 
+        select(
+            county 
+          , deaths	
+        ) 
+    )
+  }
+  
+### Germany - Data frame for cases ####  
+  getCases <- function(p_federalStrate, p_destrict) {
+    return(
+      getDataState(p_federalStrate, p_destrict, "cases") %>% 
+        arrange(desc(cases)) %>% 
+        top_n(10, wt = cases) %>% 
+        select(
+          #          BL , GEN
+          county 
+          #, EWZ,	KFL,	DEBKG_ID,	death_rate	
+          , cases	
+          #,deaths	
+          #, cases_per_100k, cases_per_population, last_update 
+        ) 
+    )
+  }
+  
+### Germany - Plot for cases ####    
+  output$plotCases <- renderPlotly({
+    req(input$tabSidebar)
+    if(input$tabSidebar == df_tab_ids$id[[2]]){
+#      print(paste("output$plotCases",input$tabSidebar))
+      g_df <- getCases(input$federalState, input$destrict)
+      #+ coord_flip()
+      ggplot(data=g_df, aes(x =cases, y = county)) + geom_bar(stat = "identity") + labs(x = "Durchschnitt Fälle", y = "")
+    }
+  })
+  
 ### Germany - Plot for cases per 100k ####    
-  output$plotFederalState <- renderPlotly({
-    req(input$destrict)
-    g_df <- getCasesPer100k(input$federalState, input$destrict)
+  output$plotCasesPer100K <- renderPlotly({
+    req(input$tabsetPlotsGermany)
+    if (input$tabsetPlotsGermany == "Cases per 100k") {
+#      print(paste("output$plotCasesPer100K",input$tabSidebar))
+      g_df <- getCasesPer100k(input$federalState, input$destrict)
     #+ coord_flip()
       ggplot(data=g_df, aes(x =cases_per_100k, y = county)) + geom_bar(stat = "identity") + labs(x = "Durchschnitt Fälle", y = "")
+    }
+  })
+
+### Germany - Plot for deaths ####    
+  output$plotDeaths <- renderPlotly({
+    req(input$tabsetPlotsGermany)
+    if (input$tabsetPlotsGermany == "Deaths") {
+      #      print(paste("output$plotCasesPer100K",input$tabSidebar))
+      g_df <- getDeaths(input$federalState, input$destrict)
+      #+ coord_flip()
+      ggplot(data=g_df, aes(x =deaths, y = county)) + geom_bar(stat = "identity") + labs(x = "Durchschnitt Fälle", y = "")
+    }
   })
 
 ### Germany - Output table for selection ####    
@@ -283,14 +341,25 @@ shinyServer(function(input, output, session) {
     
   })  
 
+### Germany - Output table for cases ####    
+  output$dataDetailsCases <- renderTable({
+    getCases(input$federalState, input$destrict)
+  })  
+  
 ### Germany - Output table for cases per 100k ####    
-  output$dataDetails <- renderTable({
+  output$dataDetailsCases100k <- renderTable({
     getCasesPer100k(input$federalState, input$destrict)
   })  
   
+### Germany - Output table for deaths ####    
+  output$dataDetailsDeaths <- renderTable({
+    getDeaths(input$federalState, input$destrict)
+  })  
 ### Germany - Output plots ####
   tabOutGermanyPerform <- reactive({
-    print(paste("Tab Output",input$tabset1))
+#    print(
+      paste("Tab Output",input$tabsetPlotsGermany)
+#      )
   })
   
   observeEvent(tabOutGermanyPerform(),{})
