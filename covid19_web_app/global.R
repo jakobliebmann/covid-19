@@ -17,8 +17,7 @@ data(pop)
 
 ## Translation for Frontend ====
   translator <- Translator$new(translation_json_path = "../data/translations/translation.json")
-  #translator <- Translator$new(translation_csvs_path = "translations")
-  
+
 ## Getting raw Data from johns hopkins (absolute values) ====
 df_confirmed <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
                          col_types = cols(Lat = col_skip(), Long = col_skip(), `Province/State` = col_skip()))
@@ -29,19 +28,10 @@ df_recovered <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID
 
 df_covid <- data.frame()
 
-## Getting raw Data from RKI Bund (absolute values) ====
-#1
-#df_rki <- read_csv("https://opendata.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0.csv")
-#2
-#df_rki_bund <- read_csv("https://opendata.arcgis.com/datasets/ef4b445a53c1406892257fe63129a8ea_0.csv")
-#<- read_csv("https://www.arcgis.com/home/item.html?id=f10774f1c63e40168479a1feb6c7ca74")
-#<- read_csv("https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?outFields=*&where=1%3D1") 
 ## Getting raw Data from RKI Landkreise (absolute values) ====
-#3
 df_rki_destrict <- read_csv("https://opendata.arcgis.com/datasets/917fc37a709542548cc3be077a786c17_0.csv")
-#write_delim(df_rki_destrict , delim = ";", file.path(getwd() , "df_out_rki_destrict.txt"))
 
-## Convert it into series (of absolute values) ====
+## World - Convert it into series (of absolute values) ====
 get_df_covid_john_hopkins <- function(){
   if(length(df_covid) == 0){
     l_df_confirmed <- df_confirmed %>%
@@ -118,25 +108,25 @@ get_df_covid_john_hopkins <- function(){
         country=="San Marino" ~ 33420,
         TRUE ~ pop
     ))
-    # TODO remove NA in l_covid in new_
     df_covid <- as.data.frame(l_covid)
   }
   return(df_covid)
 }
-# Covid as data table ----
+# World - Covid as data table ----
 get_dt_covid_world <- function(p_df_covid){
   if (length(covid) == 0){
     covid <- as.data.table(p_df_covid)
-    # covid %>%
-    #   filter(is.na(pop)) %>%
-    #   distinct(country)
   }
   return(covid)
 }
 
 # Data for input panels ----
 ## World - Vector enables selection of a region ====
-regionlist <- list() %>% prepend(c("World", "-------CONTINENTS-------")) %>% append("-------COUNTRIES-------") 
+rl_value_world <- "World"
+rl_value_continents <- "-------CONTINENTS-------"
+rl_value_countries <- "-------COUNTRIES-------"
+regionlist <- list() %>% prepend(c(rl_value_world, rl_value_continents)) %>% append(rl_value_countries)
+
 ## World - Vector enables selection of case-type ====
 plotlist <- c("net_infected"
               , "confirmed"
@@ -165,15 +155,13 @@ choices_state <- choices_state %>% prepend(choices_state_pre)
 get_regionlist <- function(p_covid){
   continentslist <- p_covid$continent %>% unique()
   countrieslist <- p_covid$country %>% unique()
-  l_regionlist <- continentslist %>% prepend(c("World", "-------CONTINENTS-------")) %>% append("-------COUNTRIES-------") %>% append(countrieslist)
+  l_regionlist <- continentslist %>% prepend(c(rl_value_world, rl_value_continents)) %>% append(rl_value_countries) %>% append(countrieslist)
   return(l_regionlist)
 }
 
 # Plotting functions ---------------------------------------------------------------
 ## World - Plottings ====
 plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relative, p_dt_covid){
-  # debugging
-  #browser()
   if (length(p_dt_covid) == 0){
     return(NULL)
   }
@@ -185,8 +173,8 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
   
   l_continentslist <- p_dt_covid$continent %>% unique()
    # wrangling the regionchoice
-  if (regionchoice %in% c("World", "-------CONTINENTS-------", "-------COUNTRIES-------")) {
-    regionchoice <- "World"
+  if (regionchoice %in% c(rl_value_world, rl_value_continents, rl_value_countries)) {
+    regionchoice <- rl_value_world
     used_data <- p_dt_covid
   }
   else if (regionchoice %in% l_continentslist) {
@@ -297,27 +285,23 @@ getUIWorldInputPanel <- function(){
     collapsible = TRUE
     # i.A. update in server
     # regionlist
-    # options? steuert, dass nur zwei ausgewählt werden dürfen
     , selectizeInput(inputId = "regionchoice"
                      , choices = regionlist
                      , label = "Select up to 2 regions of interest:"
                      , selected = c("Germany")
                      , options = list(maxItems = 2)
     )
-    # ok, da plotlist statisch ist
     , checkboxGroupInput(inputId = "plotchoice_values"
                          , label = "Select values:"
                          , choices = plotlist[1:4]
                          , selected = c("net_infected")
                          , inline = FALSE
     )
-    # ok, da plotlist, global.R statisch ist
     , checkboxGroupInput(inputId = "plotchoice_trend"
                          , label = "Select trend values:"
                          , choices = plotlist[5:7]
                          , inline = FALSE
     )
-    #ok, dynamisch via updateSliderInput z.Z. im Server
     , sliderInput(inputId = "daterange"
                   , label = "What Period are you interested in?"
                   , min = min_date
@@ -325,7 +309,6 @@ getUIWorldInputPanel <- function(){
                   , value = c(min_date, max_date)
                   , timeFormat="%Y-%m-%d"
                   )
-    #ok, da statisch             
     , radioButtons(inputId = "switch_absolut_relative"
                  , label ="Type of display:"
                  , choices = c("Absolut", "Relative")
@@ -335,7 +318,7 @@ getUIWorldInputPanel <- function(){
   )
   return (l_World_Input)
 }
-## World - Panle of output ====
+## World - Panel of output ====
 getUIWorldOutputPanel <- function() {
   l_World_Output <- box(
     title = "Select above",
@@ -347,6 +330,83 @@ getUIWorldOutputPanel <- function() {
   return(l_World_Output)
 }
 
+## GERMANY - Tab Box - Input elements ====
+getUIGermanyInputTabBox <- function() {
+  l_in_ger_tb <-           box(
+    title = "Select below"
+    , width = 12
+    , collapsible = TRUE
+    , selectInput(inputId = "federalState"
+                  , label = "Select a federal state of interest:"
+                  , choices = choices_state
+                  , selected = c("Schleswig-Holstein")
+    )
+    , selectInput(inputId = "destrict"
+                  , label = "Select a destrict of interest:"
+                  , choices = NULL
+    )
+  )
+  return(l_in_ger_tb)
+}
+## GERMANY - Tab Box - Output data table ====
+getUIGermanyOutputTabBoxPlots <- function() {
+  l_out_ger_tb_pl <- box(
+    width = 12
+    , tabBox(
+      id = "tabsetPlotsGermany"
+      , width = "400px"
+      , tabPanel(
+        "Cases"
+        #                    , textOutput("plotStateTitle")
+        , plotlyOutput("plotCases"
+                       , width = 600
+        )
+      )
+      , tabPanel(
+        "Cases per 100k"
+        , textOutput("plotStateTitle")
+        , plotlyOutput("plotCasesPer100K"
+                       , width = 600
+        )
+      )
+      , tabPanel(
+        "Deaths"
+        , plotlyOutput("plotDeaths"
+                       , width = 600
+        )
+      )
+    )
+  )
+  return(l_out_ger_tb_pl)
+}
+## GERMANY - Tab Box - Output data table ====
+getUIGermanyOutputTabBoxDataTables <- function() {
+  l_out_ger_tb_dt <- box(
+      title = "Details to selection"
+      , width = 12
+      , collapsible = TRUE
+      , tabBox(
+        id = "tabsetDetailsGermany"
+        , width = "400px"
+        , tabPanel("Result of input selection"
+                   , tableOutput("dataState")
+        )
+        ### Germany - Output details to plot cases ####
+        , tabPanel("Details to plot cases"
+                   , tableOutput("dataDetailsCases")
+        )
+        ### Germany - Output details to plot cases per 100k ####
+        , tabPanel("Details to plot cases per 100k"
+                   , tableOutput("dataDetailsCases100k")
+        )
+        ### Germany - Output details to plot cases per 100k ####
+        , tabPanel("Details to plot deaths"
+                   , tableOutput("dataDetailsDeaths")
+        )
+      )
+  )
+  return(l_out_ger_tb_dt)
+}
 ## Settings - Change Language ------ 
 set_language <- function(p_language_id="Deutsch") {
   switch (p_language_id,

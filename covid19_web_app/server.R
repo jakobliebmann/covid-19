@@ -28,7 +28,6 @@ shinyServer(function(input, output, session) {
     set_language(input$switch_language)
     sidebarMenu(
       id = "tabSidebar"
-      # mit selected = TRUE - bekomme ich die Auswahl ohne Sortierung der Menü-Items
       , menuItem(text = translator$t(df_tab_ids$label[[1]]), tabName = df_tab_ids$id[[1]], icon = icon(df_tab_ids$icon[[1]]))
       , menuItem(text = translator$t(df_tab_ids$label[[2]]), tabName = df_tab_ids$id[[2]], icon = icon(df_tab_ids$icon[[2]]))
       , menuItem(selected = TRUE, badgeLabel = "new", 
@@ -38,9 +37,9 @@ shinyServer(function(input, output, session) {
   })  
 ### Translation ####
   observeEvent(
-    # variante 2    
     i18n()
-    ,{})
+    ,{}
+  )
 
   i18n <- reactive({
     selected <- input$switch_language
@@ -58,14 +57,12 @@ shinyServer(function(input, output, session) {
     updateSliderInput(session
                       , inputId = "daterange"
                       , label = translator$t("What Period are you interested in?")
-                      # sonst schrott in der Anzeige
                       , min = s_min_date
                       , max = s_max_date
                       , value = c(s_min_date, s_max_date)
     )
   })
   
-  # Ausgabe-Feld in Settings unterhalb der Sprache
   output$languageSelection <- renderPrint({ 
     paste("Sprache-render",input$switch_language)
   })
@@ -102,7 +99,6 @@ shinyServer(function(input, output, session) {
                                        , label = translator$t("Select up to 2 regions of interest:")
                                        , selected = c("Germany")
                   )
-                  # these values represent the boundaries of the selectable period 
                   s_min_date <<- (min(tmp_covid$date))
                   s_max_date <<- (max(tmp_covid$date))
                   progress$set(value = 0.9, detail = NULL)
@@ -116,17 +112,12 @@ shinyServer(function(input, output, session) {
                   )
                   progress$close()
                 }
-                # wuerde auch zum Transport gehen
-                #attr(session, "covid_dt") <- tmp_covid
-                #print(str(session))
                 paste("Tab-Aktion starten für",selectedTab)
               }
               , "tab_germany" = {
                                 updateSelectInput(session
                                   , inputId = "federalState"
                                   , label = "Select a federal state of interest:"
-#                                  , choices = choices_state
-#                                  , selected = c("Schleswig-Holstein")
                 )
                 paste("Tab-Aktion starten für",selectedTab)
               }
@@ -144,6 +135,7 @@ shinyServer(function(input, output, session) {
   output$plotStateTitle <- renderText({
     paste("Top 10 destricts in", input$federalState ,"with cases per 100.000")
   })
+  
   output$tabSelection <- renderText({
     selectedTab <- input$tabSidebar
     if (length(selectedTab) > 0){
@@ -164,13 +156,7 @@ shinyServer(function(input, output, session) {
   })
 
 ### Germany - Federal state with destricts ####
-# Germany comprises sixteen federal states which are collectively referred to as Bundesländer. 
-# Each state has its own state constitution, and is largely autonomous in regard to its internal organisation. 
-# As of 2017 Germany is divided into 401 districts (Kreise) at a municipal level; 
-# these consist of 294 rural districts and 107 urban districts.  
-
   s_destrict_pre <- "--- All Destricts ---"
-  
 ### Germany - District choice list depending on federal state selection ####  
   federalState <- reactive({
     lSelect <- input$federalState
@@ -210,15 +196,12 @@ shinyServer(function(input, output, session) {
   destricts <- reactive({
     lSelect <- input$destrict
     if (length(lSelect) > 0 && lSelect %in% df_rki_destrict$county) {
-#      print(
         paste("Teste federalState", lSelect)
-#        )
     }
   })
   
 ### Germany - Data frame with conditions ####
   getDataState <- function(p_federalStrate, p_destrict, p_attribute){
-#    print(paste("getDataState",p_federalStrate, p_destrict, p_attribute))
     if (p_federalStrate == choices_state_pre) {
       return(df_rki_destrict)
     } else
@@ -241,6 +224,19 @@ shinyServer(function(input, output, session) {
       }
   }  
 
+### Germany - Data frame for cases ####  
+  getCases <- function(p_federalStrate, p_destrict) {
+    return(
+      getDataState(p_federalStrate, p_destrict, "cases") %>% 
+        arrange(desc(cases)) %>% 
+        top_n(10, wt = cases) %>% 
+        select(
+          county 
+          , cases	
+        ) 
+    )
+  }
+  
 ### Germany - Data frame for cases per 100k ####  
   getCasesPer100k <- function(p_federalStrate, p_destrict) {
     return(
@@ -248,11 +244,8 @@ shinyServer(function(input, output, session) {
         arrange(desc(cases_per_100k)) %>% 
         top_n(10, wt = cases_per_100k) %>% 
         select(
-        #          BL , GEN
           county 
-        #, EWZ,	KFL,	DEBKG_ID,	death_rate	,cases	,deaths	
         , cases_per_100k	
-        #,cases_per_population, last_update 
       ) 
     )
   }
@@ -270,30 +263,11 @@ shinyServer(function(input, output, session) {
     )
   }
   
-### Germany - Data frame for cases ####  
-  getCases <- function(p_federalStrate, p_destrict) {
-    return(
-      getDataState(p_federalStrate, p_destrict, "cases") %>% 
-        arrange(desc(cases)) %>% 
-        top_n(10, wt = cases) %>% 
-        select(
-          #          BL , GEN
-          county 
-          #, EWZ,	KFL,	DEBKG_ID,	death_rate	
-          , cases	
-          #,deaths	
-          #, cases_per_100k, cases_per_population, last_update 
-        ) 
-    )
-  }
-  
 ### Germany - Plot for cases ####    
   output$plotCases <- renderPlotly({
     req(input$tabSidebar)
     if(input$tabSidebar == df_tab_ids$id[[2]]){
-#      print(paste("output$plotCases",input$tabSidebar))
       g_df <- getCases(input$federalState, input$destrict)
-      #+ coord_flip()
       ggplot(data=g_df, aes(x =cases, y = county)) + geom_bar(stat = "identity") + labs(x = "Durchschnitt Fälle", y = "")
     }
   })
@@ -302,9 +276,7 @@ shinyServer(function(input, output, session) {
   output$plotCasesPer100K <- renderPlotly({
     req(input$tabsetPlotsGermany)
     if (input$tabsetPlotsGermany == "Cases per 100k") {
-#      print(paste("output$plotCasesPer100K",input$tabSidebar))
       g_df <- getCasesPer100k(input$federalState, input$destrict)
-    #+ coord_flip()
       ggplot(data=g_df, aes(x =cases_per_100k, y = county)) + geom_bar(stat = "identity") + labs(x = "Durchschnitt Fälle", y = "")
     }
   })
@@ -313,16 +285,13 @@ shinyServer(function(input, output, session) {
   output$plotDeaths <- renderPlotly({
     req(input$tabsetPlotsGermany)
     if (input$tabsetPlotsGermany == "Deaths") {
-      #      print(paste("output$plotCasesPer100K",input$tabSidebar))
       g_df <- getDeaths(input$federalState, input$destrict)
-      #+ coord_flip()
       ggplot(data=g_df, aes(x =deaths, y = county)) + geom_bar(stat = "identity") + labs(x = "Durchschnitt Fälle", y = "")
     }
   })
 
 ### Germany - Output table for selection ####    
   output$dataState <- renderTable({
-#    req(input$destrict)
     if (input$destrict == s_destrict_pre){
       l_data <- df_rki_destrict %>%
         filter(BL == input$federalState) %>%
@@ -334,11 +303,8 @@ shinyServer(function(input, output, session) {
     l_data %>% 
       select(
         county , BL , EWZ
-        # ,	KFL,	DEBKG_ID,	death_rate	
         ,cases	,deaths	,cases_per_100k	
-        # ,cases_per_population , last_update 
       )
-    
   })  
 
 ### Germany - Output table for cases ####    
