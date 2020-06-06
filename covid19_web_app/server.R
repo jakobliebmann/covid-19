@@ -268,7 +268,8 @@ shinyServer(function(input, output, session) {
     req(input$tabSidebar)
     if(input$tabSidebar == df_tab_ids$id[[2]]){
       g_df <- getCases(input$federalState, input$destrict)
-      ggplot(data=g_df, aes(x =cases, y = county)) + geom_bar(stat = "identity") + labs(x = "Durchschnitt Fälle", y = "")
+      #TODO Stand von mit ,unique(df_rki_destrict$last_update)
+      ggplot(data=g_df, aes(x = cases, y = county)) + geom_bar(stat = "identity") + labs(x = "Durchschnitt Fälle", y = "")
     }
   })
   
@@ -332,7 +333,7 @@ shinyServer(function(input, output, session) {
   
 ### About - Output ####
   output$sourceGermany <- renderText({
-    paste("Data source of tab germany: Robert Koch Institut,",unique(df_rki_destrict$last_update))  
+    paste("Data source of tab germany: Robert Koch Institut")
   })
   
   output$sourceWorld <- renderText({
