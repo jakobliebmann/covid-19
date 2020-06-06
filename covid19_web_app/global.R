@@ -38,9 +38,10 @@ df_covid <- data.frame()
 #<- read_csv("https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?outFields=*&where=1%3D1") 
 ## Getting raw Data from RKI Landkreise (absolute values) ====
 #3
-#df_rki_kreis <- read_csv("https://opendata.arcgis.com/datasets/917fc37a709542548cc3be077a786c17_0.csv")
+df_rki_destrict <- read_csv("https://opendata.arcgis.com/datasets/917fc37a709542548cc3be077a786c17_0.csv")
+#write_delim(df_rki_destrict , delim = ";", file.path(getwd() , "df_out_rki_destrict.txt"))
 
-## convert it into series (of absolute values) ====
+## Convert it into series (of absolute values) ====
 get_df_covid_john_hopkins <- function(){
   if(length(df_covid) == 0){
     l_df_confirmed <- df_confirmed %>%
@@ -56,14 +57,14 @@ get_df_covid_john_hopkins <- function(){
       group_by(country = `Country/Region`, date) %>%
       summarise(recovered = sum(value))
 
-## building a dataframe ====
+## Building a dataframe ====
     l_covid <- l_df_confirmed %>%
       full_join(l_df_deaths) %>%
       full_join(l_df_recovered)
     
     l_covid$date <- lubridate::mdy(l_covid$date)
 
-## calculate daily new cases using the lag ====
+## Calculate daily new cases using the lag ====
     l_covid <- l_covid %>%
       group_by(country, date) %>%
       summarise(confirmed = sum(confirmed), deaths = sum(deaths), recovered = sum(recovered)) %>%
@@ -71,16 +72,16 @@ get_df_covid_john_hopkins <- function(){
       mutate(new_deaths = deaths - lag(deaths, n=1, order_by = date)) %>%
       mutate(new_recovered = recovered - lag(recovered, n=1, order_by = date))
 
-## calculate amount of infected people ====
+## Calculate amount of infected people ====
     l_covid <- l_covid %>%
       mutate(net_infected = confirmed - deaths - recovered)
 
-## getting countries ISO-codes ====
+## Getting countries ISO-codes ====
     l_covid$iso <- countrycode(sourcevar = l_covid$country,
                            origin = "country.name",
                            destination = "iso3n")
 
-## getting continents from package countrycode (manual work for Kosovo) ====
+## Getting continents from package countrycode (manual work for Kosovo) ====
     l_covid$continent <- countrycode(sourcevar = l_covid$country,
                                  origin = "country.name",
                                  destination = "continent")
@@ -91,12 +92,12 @@ get_df_covid_john_hopkins <- function(){
         TRUE ~ continent
       ))
 
-## drop tuples which are no countries (i.e. ships) ====
+## Drop tuples which are no countries (i.e. ships) ====
     l_covid <- l_covid %>%
       filter(!is.na(continent))
 
-## add population data ====
-### get population data from wpp2019 ####
+## Add population data ====
+### Get population data from wpp2019 ####
     df_pop <- pop %>%
       select(iso = country_code, pop = "2020") %>%
       mutate(pop = pop*1000)
@@ -104,7 +105,7 @@ get_df_covid_john_hopkins <- function(){
     l_covid <- l_covid %>%
       left_join(df_pop)
 
-### set missing population data manually ####
+### Set missing population data manually ####
     l_covid <- l_covid %>%
       mutate(pop = case_when(
         country=="Andorra" ~ 77006,
@@ -117,14 +118,13 @@ get_df_covid_john_hopkins <- function(){
         country=="San Marino" ~ 33420,
         TRUE ~ pop
     ))
-# TODO remove NA in l_covid in new_
+    # TODO remove NA in l_covid in new_
     df_covid <- as.data.frame(l_covid)
   }
   return(df_covid)
 }
-
+# Covid as data table ----
 get_dt_covid_world <- function(p_df_covid){
-# covid as data table ----
   if (length(covid) == 0){
     covid <- as.data.table(p_df_covid)
     # covid %>%
@@ -134,10 +134,10 @@ get_dt_covid_world <- function(p_df_covid){
   return(covid)
 }
 
-# data for input panels ----
-## vector enables selection of a region ====
+# Data for input panels ----
+## World - Vector enables selection of a region ====
 regionlist <- list() %>% prepend(c("World", "-------CONTINENTS-------")) %>% append("-------COUNTRIES-------") 
-## vector enables selection of case-type ====
+## World - Vector enables selection of case-type ====
 plotlist <- c("net_infected"
               , "confirmed"
               , "deaths"
@@ -147,11 +147,21 @@ plotlist <- c("net_infected"
               , "new_recovered"
               )
 
-## these values represent the boundaries of the selectable period ====
+## World - These values represent the boundaries of the selectable period ====
 max_date <- lubridate::ymd("9999-12-31")
 min_date <- lubridate::ymd("1900-01-01")
+## World - Covid table initialize ====
 covid <- data.table()
 
+## Germany - Vector enables selection of federal states ====
+choices_state_t2 <- "Federal States"
+choices_state_pre <- paste("--- All" , choices_state_t2 , "---")
+choices_state <- unique(df_rki_destrict$BL) 
+choices_state <- sort(choices_state)
+choices_state <- choices_state %>% prepend(choices_state_pre)
+
+## UI Dynamic ====
+### World - Vector enables selection of two regions ####
 get_regionlist <- function(p_covid){
   continentslist <- p_covid$continent %>% unique()
   countrieslist <- p_covid$country %>% unique()
@@ -159,7 +169,8 @@ get_regionlist <- function(p_covid){
   return(l_regionlist)
 }
 
-# plotting functions ---------------------------------------------------------------
+# Plotting functions ---------------------------------------------------------------
+## World - Plottings ====
 plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relative, p_dt_covid){
   # debugging
   #browser()
@@ -254,42 +265,36 @@ plotting <- function(regionchoice, plotchoice, daterange, switch_absolut_relativ
 }
 
 # UI-Panels ---------------------------------------------------------------
-## UI-IDs ====
+## UI-IDs of menu tabs ====
 df_tab_ids <- data.frame(
-  list(c("World", "Germany", "Settings")
-       , c("tab_country", "tab_germany", "tab_settings")
+  list(c("World", "Germany", "Settings", "About")
+       , c("tab_country", "tab_germany", "tab_settings", "tab_about")
        #https://fontawesome.com/icons?d=gallery&q=globe&m=free
        #    "globe-europe"
-       , c("globe", "globe-asia","users-cog")
+       , c("globe", "globe-asia","users-cog", "qrcode")
   )
 )
 colnames(df_tab_ids) <- c("label","id","icon")
 
-## Header ====
+## Header of shiny app ====
 getHeaderLabel <- function() {
   l_title <- translator$t("Self service analysis: Covid-19")
   return(l_title)  
 }
 
 getHeader <- function(){
-  #?dashboardHeader
-  ui_header <- dashboardHeader(
-    #title = getHeaderLabel()
-    title = textOutput(outputId = "MyHead")
-    #.list = list(h1(getHeaderLabel()))
-    )
-  # oder ohne Header - Nachteil Sidebar bei Vollbild zu sehen
-  #    ui_header <- dashboardHeader(disable = TRUE)
-  return(ui_header)
+  l_app_header <- dashboardHeader(
+    title = textOutput(outputId = "appTitle")
+  )
+  return(l_app_header)
 }
 
-## World Input ====
+## World - Panel of input ====
 getUIWorldInputPanel <- function(){
   l_World_Input <- box(
     title = "Select below",
     width = 12,
     collapsible = TRUE
-    , textOutput("progress_var")
     # i.A. update in server
     # regionlist
     # options? steuert, dass nur zwei ausgewählt werden dürfen
@@ -330,7 +335,7 @@ getUIWorldInputPanel <- function(){
   )
   return (l_World_Input)
 }
-## World Output ====
+## World - Panle of output ====
 getUIWorldOutputPanel <- function() {
   l_World_Output <- box(
     title = "Select above",
@@ -342,7 +347,7 @@ getUIWorldOutputPanel <- function() {
   return(l_World_Output)
 }
 
-## Change Language ------ 
+## Settings - Change Language ------ 
 set_language <- function(p_language_id="Deutsch") {
   switch (p_language_id,
           "Deutsch" = {
